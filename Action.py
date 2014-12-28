@@ -5,6 +5,7 @@ import imp
 from RandomFileQueue import RandomFileQueue
 from weakref import WeakKeyDictionary
 from threading import RLock
+from queue import Queue
 import Downloader
 import TaskSystem
 import Index
@@ -22,7 +23,7 @@ def _reloadHandler():
 		try:
 			imp.reload(mod)
 		except Exception:
-			Logging.logExcInfo("reloadHandler", *sys.exc_info())
+			Logging.logException("reloadHandler", *sys.exc_info())
 
 def _getModChangeTime():
 	return os.path.getmtime(__file__)

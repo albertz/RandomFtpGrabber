@@ -1,11 +1,12 @@
 
 import sys
+import Logging
 
 try:
 	import guessit
 except ImportError:
 	print("failed to import guessit:")
-	sys.excepthook(*sys.exc_info())
+	Logging.logException(*sys.exc_info())
 	print("This is mandatory. Please install via PIP")
 	print("pip3 install guessit")
 	sys.exit(-1)

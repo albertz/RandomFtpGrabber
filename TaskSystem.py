@@ -3,14 +3,18 @@ from queue import Queue
 from threading import currentThread, Event, RLock, Lock, Thread
 import weakref
 import sys
+import better_exchook
 
 kNumWorkers = 5
 kMinQueuedActions = kNumWorkers # fill workerQueue always up to N elements, via the watcher thread
 
 mainThread = currentThread() # expect that we import this from the main thread
-mainLoopQueue = Queue()
-workerQueue = Queue()
-exitEvent = Event()
+if not "mainLoopQueue" in vars():
+	mainLoopQueue = Queue()
+if not "workerQueue" in vars():
+	workerQueue = Queue()
+if not "exitEvent" in vars():
+	exitEvent = Event()
 
 
 def doInMainthread(func, wait):
@@ -36,15 +40,28 @@ def doInMainthread(func, wait):
 		if result.excInfo: raise result.excInfo[1]
 		return result.returnValue
 
-def DoInMainthreadDecoratorWait(func):
-	def decoratedFunc(*args, **kwargs):
-		return doInMainthread(lambda: func(*args, **kwargs), wait=True)
-	return decoratedFunc
+class Caller:
+	def __init__(self, func, *args, **kwargs):
+		self.func = func
+		self.args = args
+		self.kwargs = kwargs
 
-def DoInMainthreadDecoratorNowait(func):
-	def decoratedFunc(*args, **kwargs):
-		return doInMainthread(lambda: func(*args, **kwargs), wait=False)
-	return decoratedFunc
+	def __call__(self):
+		self.func()
+
+class DoInMainthreadDecoratorWait:
+	def __init__(self, func):
+		self.func = func
+
+	def __call__(self, *args, **kwargs):
+		return doInMainthread(Caller(self.func, *args, **kwargs), wait=True)
+
+class DoInMainthreadDecoratorNowait:
+	def __init__(self, func):
+		self.func = func
+
+	def __call__(self, *args, **kwargs):
+		return doInMainthread(Caller(self.func, *args, **kwargs), wait=False)
 
 
 def queueWork(func):
@@ -59,7 +76,11 @@ class LocksDict:
 
 	def __getitem__(self, item):
 		with self.lock:
-			return self.weakKeyDict.get(item, self.lockClazz)
+			if item in self.weakKeyDict:
+				return self.weakKeyDict[item]
+			lock = self.lockClazz()
+			self.weakKeyDict[item] = lock
+			return lock
 
 def SyncedOnObj(func):
 	locks = LocksDict()
@@ -75,6 +96,7 @@ def mainLoop():
 		func()
 
 def workerLoop():
+	better_exchook.install()
 	while True:
 		func = workerQueue.get()
 		try:
@@ -83,6 +105,7 @@ def workerLoop():
 			return
 
 def watcherLoop():
+	better_exchook.install()
 	while not exitEvent.isSet():
 		if workerQueue.qsize() >= kMinQueuedActions:
 			exitEvent.wait(1)
@@ -92,11 +115,14 @@ def watcherLoop():
 		func = Action.getNewAction()
 		workerQueue.put(func)
 
-workers = []
-watcher = None
+if "workers" not in vars():
+	workers = []
+if "watcher" not in vars():
+	watcher = None
 
 def _initWorkerThreads():
-	for i in range(kNumWorkers):
+	if len(workers) >= kNumWorkers: return
+	for i in range(kNumWorkers - len(workers)):
 		thread = Thread(target=workerLoop, name="Worker %i/%i" % (i + 1, kNumWorkers))
 		workers.append(thread)
 		thread.daemon = True
@@ -104,6 +130,7 @@ def _initWorkerThreads():
 
 def _initWatcherThread():
 	global watcher
+	if watcher: return
 	watcher = Thread(target=watcherLoop, name="Watcher")
 	watcher.daemon = True
 	watcher.start()

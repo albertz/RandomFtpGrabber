@@ -39,11 +39,11 @@ class RandomFileQueue:
 					# it might fail because of permission errors or whatever
 					listeddir = []
 				for f in listeddir:
-					if self.owner.fs.isFile(self.base + "/" + f):
+					if self.owner.fs.isFile(f):
 						self.files += [f]
-					elif self.owner.fs.isDir(self.base + "/" + f):
+					elif self.owner.fs.isDir(f):
 						subdir = Dir()
-						subdir.base = self.base + "/" + f
+						subdir.base = f
 						self.nonloadedDirs += [subdir]
 
 			def expectedFilesCount(self):
@@ -64,7 +64,7 @@ class RandomFileQueue:
 					r = rndInt(0, rmax - 1)
 					
 					if r < len(self.files):
-						return self.base + "/" + self.files[r]
+						return self.files[r]
 					r -= len(self.files)
 					
 					for d in self.loadedDirs:

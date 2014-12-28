@@ -19,16 +19,18 @@ class Filesystem:
 	def handleException(self, exctype, value, traceback):
 		Logging.logException("Filesystem", exctype, value, traceback)
 
-class File:
+class FileBase:
 	def __init__(self, url):
 		self.url = url
 
 	def __str__(self):
 		return self.url
 
-class Dir:
+class File(FileBase): pass
+
+class Dir(FileBase):
 	def __init__(self, url):
-		self.url = url
+		super().__init__(url)
 		self.childs = None
 		self.lastException = None
 

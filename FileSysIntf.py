@@ -16,19 +16,32 @@ def listDir(url):
 def ftpListDir(url):
 	o = urlparse(url)
 	ftp = ftplib.FTP()
+
 	kwargs = { "host": o.hostname or o.netloc }
 	if o.port: kwargs["port"] = o.port
 	ftp.connect(**kwargs)
+
 	kwargs = {}
 	if o.username: kwargs["user"] = o.username
 	if o.password: kwargs["passwd"] = o.password
+
 	ftp.login(**kwargs)
 	ftp.cwd(o.path)
 
 	lines = []
 	ftp.dir(o.path, lines.append)
-	dirs = []
-	files = []
+	if not lines: return [], []
+
+	if "<DIR>" in lines[0]:
+		return _ftpListDirWindows(url, lines)
+	else:
+		return _ftpListDirUnix(url, lines)
+
+# thanks https://github.com/laserson/ftptree/blob/master/crawltree.py
+
+def _ftpListDirUnix(url, lines):
+	dirs, files = [], []
+
 	for line in lines:
 		fields = line.split()
 		name = ' '.join(fields[8:])
@@ -40,6 +53,20 @@ def ftpListDir(url):
 			continue
 		else:
 			raise ValueError("Don't know what kind of file I have: %s" % line.strip())
+		container.append(url + "/" + name)
+
+	return dirs, files
+
+def _ftpListDirWindows(url, lines):
+	dirs, files = [], []
+
+	for line in lines:
+		fields = line.split()
+		name = ' '.join(fields[3:])
+		if fields[2].strip() == '<DIR>':
+			container = dirs
+		else:
+			container = files
 		container.append(url + "/" + name)
 
 	return dirs, files
