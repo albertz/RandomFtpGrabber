@@ -6,7 +6,6 @@ better_exchook.install()
 import sys
 from argparse import ArgumentParser
 import os
-import TaskSystem # important to be initially imported in the main thread
 
 RootDir = None
 Sources = None
@@ -29,6 +28,7 @@ if __name__ == "__main__":
 	import main
 	main.init(*sys.argv[1:])
 	try:
+		import TaskSystem # important to be initially imported in the main thread
 		TaskSystem.mainLoop()
 	except KeyboardInterrupt:
 		print("KeyboardInterrupt")

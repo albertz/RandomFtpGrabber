@@ -59,14 +59,19 @@ def getRandomWalker(base):
 		randomWalkers[base] = walker
 		return walker
 
+class Download:
+	def __init__(self, url):
+		self.url = url
+
+	def __call__(self):
+		Downloader.download(self.url)
+
 def pushRandomNextFile():
 	base = Index.index.getRandomSource()
 	walker = getRandomWalker(base)
 	url = walker.getNextFile()
 	if not url: return
-	def download():
-		Downloader.download(url)
-	TaskSystem.queueWork(download)
+	TaskSystem.queueWork(Download(url))
 
 def getNewAction():
 	if _checkMaybeReload():

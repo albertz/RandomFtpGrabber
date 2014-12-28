@@ -1,7 +1,7 @@
 
 import Persistence
 import FileSysIntf
-from TaskSystem import SyncedOnObj
+from Threading import SyncedOnObj
 import random
 import Logging
 
