@@ -13,19 +13,16 @@ C_nonloaded_dirs_expectedMin = 100
 
 rndInt = random.randint
 
+class Filesystem:
+	def listDir(self, path): raise NotImplementedError
+	def isFile(self, path): raise NotImplementedError
+	def isDir(self, path): raise NotImplementedError
+
 class RandomFileQueue:
-	def __init__(self, rootdir, fileexts):
+	def __init__(self, rootdir, filesystem):
 		self.rootdir = rootdir
-		self.fileexts = fileexts
-		
-		def hasCorrectFileext(f):
-			ext = os.path.splitext(f)[1]
-			ext = ext.lower()
-			for allowedExt in self.fileexts:
-				if ext == "." + allowedExt.lower():
-					return True
-			return False
-			
+		self.fs = filesystem
+
 		class Dir:
 			owner = self
 			isLoaded = False
@@ -40,16 +37,14 @@ class RandomFileQueue:
 				self.isLoaded = True
 				# Note: If we could use the C readdir() more directly, that would be much faster because it already provides the stat info (wether it is a file or dir), so we don't need to do a separate call for isfile/isdir.
 				try:
-					listeddir = os.listdir(self.base)
-				except:
+					listeddir = self.fs.listDir(self.base)
+				except Exception:
 					# it might fail because of permission errors or whatever
 					listeddir = []
 				for f in listeddir:
-					if f.startswith("."): continue
-					if os.path.isfile(self.base + "/" + f):
-						if hasCorrectFileext(f) and access(self.base + "/" + f, R_OK):
-							self.files += [f]
-					elif os.path.isdir(self.base + "/" + f):
+					if self.fs.isFile(self.base + "/" + f):
+						self.files += [f]
+					elif self.fs.isDir(self.base + "/" + f):
 						subdir = Dir()
 						subdir.base = self.base + "/" + f
 						self.nonloadedDirs += [subdir]
@@ -97,13 +92,3 @@ class RandomFileQueue:
 		
 	def getNextFile(self):
 		return self.root.randomGet()
-
-def test():
-	q = RandomFileQueue(rootdir = os.path.expanduser("~/Music"), fileexts=["mp3","ogg","flac"])
-	i = 0
-	while i < 100:
-		i += 1
-		print q.getNextFile()
-
-if __name__ == '__main__':
-	test()
