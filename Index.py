@@ -19,6 +19,8 @@ class Filesystem:
 	def handleException(self, exctype, value, traceback):
 		Logging.logException("Filesystem", exctype, value, traceback)
 
+	TemporaryException = FileSysIntf.TemporaryException
+
 class FileBase:
 	def __init__(self, url):
 		self.url = url
@@ -41,9 +43,11 @@ class Dir(FileBase):
 
 		try:
 			dirs, files = FileSysIntf.listDir(self.url)
+		except FileSysIntf.TemporaryException as e:
+			print("ListDir temporary exception:", e)
+			raise e
 		except Exception as e:
-			print(e)
-
+			print("ListDir unrecoverable exception:", e)
 			self.lastException = e
 			return []
 

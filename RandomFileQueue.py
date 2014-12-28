@@ -7,6 +7,7 @@
 
 import random
 import sys
+import FileSysIntf
 
 kNonloadedDirsExpectedFac = 0.5
 kNonloadedDirsExpectedMin = 100
@@ -34,6 +35,10 @@ class RandomFileQueue:
 				# Note: If we could use the C readdir() more directly, that would be much faster because it already provides the stat info (wether it is a file or dir), so we don't need to do a separate call for isfile/isdir.
 				try:
 					listeddir = self.owner.fs.listDir(self.base)
+				except self.owner.fs.TemporaryException:
+					# try again another time
+					self.isLoaded = False
+					return
 				except Exception:
 					self.owner.fs.handleException(*sys.exc_info())
 					# it might fail because of permission errors or whatever
@@ -57,7 +62,8 @@ class RandomFileQueue:
 				
 			def randomGet(self):
 				if not self.isLoaded: self.load()
-				
+				if not self.isLoaded: return None
+
 				while True:
 					rmax = self.expectedFilesCount()
 					if rmax == 0: return None

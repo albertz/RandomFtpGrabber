@@ -2,6 +2,9 @@
 import ftplib
 from urllib.parse import urlparse
 
+class TemporaryException(Exception):
+	pass
+
 def listDir(url):
 	"""
 	returns tuple of lists: (dirs, files)
@@ -9,7 +12,10 @@ def listDir(url):
 	"""
 	o = urlparse(url)
 	if o.scheme == "ftp":
-		return ftpListDir(url)
+		try:
+			return ftpListDir(url)
+		except ftplib.error_temp as exc:
+			raise TemporaryException(exc)
 
 	raise NotImplementedError
 
@@ -21,21 +27,22 @@ def ftpListDir(url):
 	if o.port: kwargs["port"] = o.port
 	ftp.connect(**kwargs)
 
-	kwargs = {}
-	if o.username: kwargs["user"] = o.username
-	if o.password: kwargs["passwd"] = o.password
+	with ftp:
+		kwargs = {}
+		if o.username: kwargs["user"] = o.username
+		if o.password: kwargs["passwd"] = o.password
 
-	ftp.login(**kwargs)
-	ftp.cwd(o.path)
+		ftp.login(**kwargs)
+		ftp.cwd(o.path)
 
-	lines = []
-	ftp.dir(o.path, lines.append)
-	if not lines: return [], []
+		lines = []
+		ftp.dir(o.path, lines.append)
+		if not lines: return [], []
 
-	if "<DIR>" in lines[0]:
-		return _ftpListDirWindows(url, lines)
-	else:
-		return _ftpListDirUnix(url, lines)
+		if "<DIR>" in lines[0] or lines[0][0] not in "d-l":
+			return _ftpListDirWindows(url, lines)
+		else:
+			return _ftpListDirUnix(url, lines)
 
 # thanks https://github.com/laserson/ftptree/blob/master/crawltree.py
 
@@ -52,7 +59,7 @@ def _ftpListDirUnix(url, lines):
 		elif line[0] == 'l':
 			continue
 		else:
-			raise ValueError("Don't know what kind of file I have: %s" % line.strip())
+			raise ValueError("Unix listing, unexpected line: %s" % line.strip())
 		container.append(url + "/" + name)
 
 	return dirs, files
