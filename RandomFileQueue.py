@@ -13,10 +13,6 @@ C_nonloaded_dirs_expectedMin = 100
 
 rndInt = random.randint
 
-class Filesystem:
-	def listDir(self, path): raise NotImplementedError
-	def isFile(self, path): raise NotImplementedError
-	def isDir(self, path): raise NotImplementedError
 
 class RandomFileQueue:
 	def __init__(self, rootdir, filesystem):

@@ -1,33 +1,27 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
 import sys
+from argparse import ArgumentParser
 import os
-from pprint import pprint
+import TaskSystem # important to be initially imported in the main thread
 
-try:
-	import guessit
-except ImportError:
-	print("failed to import guessit:")
-	sys.excepthook(*sys.exc_info())
-	print("This is mandatory. Please install via PIP")
-	print("pip3 install guessit")
-	sys.exit(-1)
+RootDir = None
+Sources = None
 
-argParser = ArgumentParser()
-argParser.add_argument("--dir", default=os.getcwd())
-args = argParser.parse_args()
+def init(*rawArgList):
+	argParser = ArgumentParser()
+	argParser.add_argument("--dir", default=os.getcwd())
+	args = argParser.parse_args(rawArgList)
 
-rootDir = args.dir
-print("root dir: %s" % rootDir)
+	global RootDir
+	RootDir = args.dir
+	print("root dir: %s" % RootDir)
 
-sources = open(rootDir + "/sources.txt").read().splitlines()
-print("sources:")
-pprint(sources)
-
-pprint(guessit.guess_file_info("Breaking.Bad.S05E08.720p.MP4.BDRip.[KoTuWa].mkv"))
-
-while True:
-	pass
+	global Sources
+	Sources = open(RootDir + "/sources.txt").read().splitlines()
 
 
+if __name__ == "__main__":
+	import main
+	main.init(*sys.argv[1:])
+	TaskSystem.mainLoop()
