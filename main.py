@@ -21,7 +21,11 @@ def init(*rawArgList):
 	Sources = open(RootDir + "/sources.txt").read().splitlines()
 
 
+
 if __name__ == "__main__":
 	import main
 	main.init(*sys.argv[1:])
-	TaskSystem.mainLoop()
+	try:
+		TaskSystem.mainLoop()
+	except KeyboardInterrupt:
+		print("KeyboardInterrupt")

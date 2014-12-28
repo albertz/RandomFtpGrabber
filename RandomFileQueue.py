@@ -33,14 +33,15 @@ class RandomFileQueue:
 				self.isLoaded = True
 				# Note: If we could use the C readdir() more directly, that would be much faster because it already provides the stat info (wether it is a file or dir), so we don't need to do a separate call for isfile/isdir.
 				try:
-					listeddir = self.fs.listDir(self.base)
-				except Exception:
+					listeddir = self.owner.fs.listDir(self.base)
+				except Exception as exc:
+					self.owner.fs.handleException(exc)
 					# it might fail because of permission errors or whatever
 					listeddir = []
 				for f in listeddir:
-					if self.fs.isFile(self.base + "/" + f):
+					if self.owner.fs.isFile(self.base + "/" + f):
 						self.files += [f]
-					elif self.fs.isDir(self.base + "/" + f):
+					elif self.owner.fs.isDir(self.base + "/" + f):
 						subdir = Dir()
 						subdir.base = self.base + "/" + f
 						self.nonloadedDirs += [subdir]

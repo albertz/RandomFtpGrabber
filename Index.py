@@ -2,6 +2,8 @@
 import Persistence
 import FileSysIntf
 from TaskSystem import SyncedOnObj
+import random
+import RandomFileQueue
 
 # Interface for RandomFileQueue
 class Filesystem:
@@ -14,6 +16,9 @@ class Filesystem:
 	def isDir(self, path):
 		return isinstance(path, Dir)
 
+	def handleException(self, exc):
+		print(exc)
+
 class File:
 	def __init__(self, url):
 		self.url = url
@@ -22,28 +27,40 @@ class Dir:
 	def __init__(self, url):
 		self.url = url
 		self.childs = None
+		self.lastException = None
 
 	@SyncedOnObj
 	def listDir(self):
 		if self.childs is not None:
 			return self.childs
 
-		dirs, files = FileSysIntf.listDir(self.url)
+		try:
+			dirs, files = FileSysIntf.listDir(self.url)
+		except Exception as e:
+			print(e)
+
+			self.lastException = e
+			return []
+
 		self.childs = \
 			list(map(Dir, dirs)) + \
 			list(map(File, files))
+		index.save()
 		return self.childs
 
 class Index:
 	def __init__(self):
 		self.sources = {}
 		self._loadSources()
+		assert self.sources
 
 	def _loadSources(self):
 		import main
 		for source in main.Sources:
 			self.sources[source] = Dir(url=source)
 
+	def getRandomSource(self):
+		return random.choice(list(self.sources.values()))
 
 filesystem = Filesystem()
 
