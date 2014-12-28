@@ -44,10 +44,10 @@ class Dir(FileBase):
 		try:
 			dirs, files = FileSysIntf.listDir(self.url)
 		except FileSysIntf.TemporaryException as e:
-			print("ListDir temporary exception:", e)
+			Logging.log("ListDir temporary exception:", e)
 			raise e
 		except Exception as e:
-			print("ListDir unrecoverable exception:", str(e) or type(e))
+			Logging.log("ListDir unrecoverable exception:", str(e) or type(e))
 			self.lastException = e
 			return []
 

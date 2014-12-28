@@ -1,9 +1,10 @@
 
+import time
 import ftplib
 from urllib.parse import urlparse
 
-class TemporaryException(Exception):
-	pass
+class OtherException(Exception): pass
+class TemporaryException(Exception): pass
 
 def listDir(url):
 	"""
@@ -15,7 +16,14 @@ def listDir(url):
 		try:
 			return ftpListDir(url)
 		except ftplib.error_temp as exc:
+			time.sleep(1) # sleep to not hammer too much
 			raise TemporaryException(exc)
+		except ftplib.Error as exc:
+			raise OtherException(exc)
+		except ftplib.all_errors as exc:
+			# These might be network errors, etc.
+			# This is very much temporary.
+			raise TemporaryException("undefined other expected: %s" % exc)
 
 	raise NotImplementedError
 

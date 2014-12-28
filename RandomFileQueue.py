@@ -38,7 +38,7 @@ class RandomFileQueue:
 				except self.owner.fs.TemporaryException:
 					# try again another time
 					self.isLoaded = False
-					return
+					raise # fall down to bottom
 				except Exception:
 					self.owner.fs.handleException(*sys.exc_info())
 					# it might fail because of permission errors or whatever

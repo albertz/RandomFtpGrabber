@@ -5,11 +5,10 @@ import imp
 from RandomFileQueue import RandomFileQueue
 from weakref import WeakKeyDictionary
 from threading import RLock
-from queue import Queue
 import Downloader
 import TaskSystem
 import Index
-import Logging
+import FileSysIntf
 
 # First some code with some module reload handling logic to make hacking on it more fun.
 
@@ -69,7 +68,12 @@ class Download:
 def pushRandomNextFile():
 	base = Index.index.getRandomSource()
 	walker = getRandomWalker(base)
-	url = walker.getNextFile()
+	try:
+		url = walker.getNextFile()
+	except FileSysIntf.TemporaryException:
+		# Handled in walker.
+		# We just quit here now.
+		return
 	if not url: return
 	TaskSystem.queueWork(Download(url))
 

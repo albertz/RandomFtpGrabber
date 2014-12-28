@@ -10,3 +10,7 @@ def logException(where, exctype, value, traceback):
 		print("Exception at %s" % where)
 		better_exchook.better_exchook(exctype, value, traceback, autodebugshell=False)
 
+
+def log(*args):
+	with lock:
+		print(*args)
