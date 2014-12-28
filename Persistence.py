@@ -10,7 +10,7 @@ class Saver:
 		self.filename = filename
 
 	def __call__(self):
-		pickle.dump(self.obj, open(self.filename, "wb"))
+		pickle.dump(self.obj(), open(self.filename, "wb"))
 
 def load(filename, defaultConstructor):
 	import main

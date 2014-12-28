@@ -47,7 +47,7 @@ class Dir(FileBase):
 			print("ListDir temporary exception:", e)
 			raise e
 		except Exception as e:
-			print("ListDir unrecoverable exception:", e)
+			print("ListDir unrecoverable exception:", str(e) or type(e))
 			self.lastException = e
 			return []
 
