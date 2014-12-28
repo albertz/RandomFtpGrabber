@@ -21,3 +21,13 @@ which belong together - they should be grabbed together.
 Python.
 Should support resuming.
 FTP, HTTP and maybe others.
+
+## Usage
+
+Go into the directory where you want to download to.
+
+    echo "ftp://bla/blub1" >> sources.txt
+    echo "ftp://blub/bla2" >> sources.txt
+    mkdir downloads
+    RandomFtpGrabber/main.py
+
