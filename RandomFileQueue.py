@@ -5,11 +5,11 @@
 
 # loosely inspired from https://github.com/albertz/PictureSlider/blob/master/PictureSlider/FileQueue.cpp
 
-import os, random
-from os import access, R_OK
+import random
+import sys
 
-C_nonloaded_dirs_expectedFac = 0.5
-C_nonloaded_dirs_expectedMin = 100
+kNonloadedDirsExpectedFac = 0.5
+kNonloadedDirsExpectedMin = 100
 
 rndInt = random.randint
 
@@ -34,8 +34,8 @@ class RandomFileQueue:
 				# Note: If we could use the C readdir() more directly, that would be much faster because it already provides the stat info (wether it is a file or dir), so we don't need to do a separate call for isfile/isdir.
 				try:
 					listeddir = self.owner.fs.listDir(self.base)
-				except Exception as exc:
-					self.owner.fs.handleException(exc)
+				except Exception:
+					self.owner.fs.handleException(*sys.exc_info())
 					# it might fail because of permission errors or whatever
 					listeddir = []
 				for f in listeddir:
@@ -52,7 +52,7 @@ class RandomFileQueue:
 				for d in self.loadedDirs:
 					c += d.expectedFilesCount()
 				c += len(self.nonloadedDirs) * \
-					max(int(C_nonloaded_dirs_expectedFac * c), C_nonloaded_dirs_expectedMin)
+					max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
 				return c
 				
 			def randomGet(self):

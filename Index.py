@@ -3,7 +3,7 @@ import Persistence
 import FileSysIntf
 from TaskSystem import SyncedOnObj
 import random
-import RandomFileQueue
+import Logging
 
 # Interface for RandomFileQueue
 class Filesystem:
@@ -16,12 +16,15 @@ class Filesystem:
 	def isDir(self, path):
 		return isinstance(path, Dir)
 
-	def handleException(self, exc):
-		print(exc)
+	def handleException(self, exctype, value, traceback):
+		Logging.logException("Filesystem", exctype, value, traceback)
 
 class File:
 	def __init__(self, url):
 		self.url = url
+
+	def __str__(self):
+		return self.url
 
 class Dir:
 	def __init__(self, url):
@@ -47,6 +50,9 @@ class Dir:
 			list(map(File, files))
 		index.save()
 		return self.childs
+
+	def __str__(self):
+		return self.url
 
 class Index:
 	def __init__(self):

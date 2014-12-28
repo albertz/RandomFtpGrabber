@@ -44,8 +44,3 @@ def ftpListDir(url):
 
 	return dirs, files
 
-
-
-def download(url):
-
-	return

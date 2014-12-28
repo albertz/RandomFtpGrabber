@@ -8,19 +8,21 @@ from threading import RLock
 import Downloader
 import TaskSystem
 import Index
+import Logging
 
 # First some code with some module reload handling logic to make hacking on it more fun.
 
 def _reloadHandler():
+	import Logging
 	import RandomFileQueue
 	import Index
 	import FileSysIntf
 	import Downloader
-	for mod in [RandomFileQueue, Index, FileSysIntf, Downloader]:
+	for mod in [Logging, RandomFileQueue, Index, FileSysIntf, Downloader]:
 		try:
 			imp.reload(mod)
 		except Exception:
-			sys.excepthook(*sys.exc_info())
+			Logging.logExcInfo("reloadHandler", *sys.exc_info())
 
 def _getModChangeTime():
 	return os.path.getmtime(__file__)

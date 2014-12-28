@@ -4,6 +4,8 @@ import sys
 from argparse import ArgumentParser
 import os
 import TaskSystem # important to be initially imported in the main thread
+import better_exchook
+better_exchook.install()
 
 RootDir = None
 Sources = None
