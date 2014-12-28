@@ -7,6 +7,7 @@ def download(url):
 			"--continue",
 			"--force-directories",
 			"--directory-prefix", "downloads/",
+			"--progress=dot:mega",
 			str(url)]
 	print(" ".join(map(repr, args)))
 

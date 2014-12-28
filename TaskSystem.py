@@ -42,7 +42,10 @@ def workerLoop():
 		except Exception:
 			Logging.logException("Worker", *sys.exc_info())
 		finally:
-			currentWork.remove(func)
+			try:
+				currentWork.remove(func)
+			except Exception as e:
+				print("Dont understand: %s, %r" % (e, currentWork))
 
 def watcherLoop():
 	better_exchook.install()
