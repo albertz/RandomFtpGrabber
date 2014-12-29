@@ -19,6 +19,13 @@ def listDir(url):
 			time.sleep(1) # sleep to not hammer too much
 			raise TemporaryException(exc)
 		except ftplib.Error as exc:
+			# All others are probably errors where we cannot recover from.
+			# Most common are some sort of 5xx errors (no such file etc).
+			# However, some FTP servers wrongly classify certain errors,
+			# and we check for them first.
+			if "the maximum number of allowed clients" in str(exc):
+				time.sleep(1) # sleep to not hammer too much
+				raise TemporaryException(exc)
 			raise OtherException(exc)
 		except ftplib.all_errors as exc:
 			# These might be network errors, etc.
