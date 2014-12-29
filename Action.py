@@ -29,6 +29,8 @@ class Download:
 			Downloader.download(self.url)
 		except Downloader.DownloadTemporaryError:
 			# Retry later.
+			# However, also queue some random action to allow other downloads.
+			TaskSystem.queueWork(RandomNextFile())
 			TaskSystem.queueWork(self)
 		except Downloader.DownloadFatalError:
 			# Cannot handle. Nothing we can do.

@@ -51,7 +51,8 @@ def download(url):
 			"--continue",
 			"--force-directories",
 			"--directory-prefix", "downloads/",
-			"--progress=dot:mega",
+			"--progress=dot:mega", # see also the progress handling below
+			"--tries=5", # note that we also do our own retry-handling
 			str(url)]
 	print(" ".join(map(repr, args)))
 
