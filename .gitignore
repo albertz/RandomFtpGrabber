@@ -1,3 +1,10 @@
 *.pyc
 __pycache__
 /.idea
+
+# In case you want to download directly in this directory.
+# Note that in case you are downloading in another dir,
+# it might make sense to esp add *.db and sources.txt to Git control.
+/sources.txt
+/*.db
+/downloads
