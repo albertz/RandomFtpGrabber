@@ -1,0 +1,3 @@
+[submodule "extern/imdbpy"]
+	path = extern/imdbpy
+	url = https://github.com/albertz/imdbpy.git
