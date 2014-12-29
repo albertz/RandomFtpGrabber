@@ -69,6 +69,7 @@ The [Python module `IMDbPY`](http://imdbpy.sourceforge.net/)
 might be useful for this case
 (although it doesn't support Python 3 yet - see
 [here](https://github.com/alberanid/imdbpy/issues/17)).
+Then, also [this](http://stackoverflow.com/questions/5342329/can-i-retrieve-imdbs-movie-recommendations-for-a-given-movie-using-imdbpy) is relevant.
 
 Some movie recommendation engine can then be useful.
 
