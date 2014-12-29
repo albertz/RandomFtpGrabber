@@ -67,10 +67,16 @@ if "watcher" not in vars():
 def _initWorkerThreads():
 	if len(workers) >= kNumWorkers: return
 	assert not workers # needs fixing otherwise
+	# Move all of the queued entries to the set to eliminate duplicates.
+	while not workerQueue.empty():
+		currentWork.add(workerQueue.get())
+	# Now back to the queue.
 	for func in currentWork:
 		queueWork(func)
+	# And cleanup.
 	currentWork.clear()
 	currentWork.save()
+	# Now init the threads.
 	for i in range(kNumWorkers - len(workers)):
 		thread = Thread(target=workerLoop, name="Worker %i/%i" % (i + 1, kNumWorkers))
 		workers.append(thread)

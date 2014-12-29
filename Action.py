@@ -60,7 +60,7 @@ def getRandomWalker(base):
 
 class Download:
 	def __init__(self, url):
-		self.url = url
+		self.url = str(url)
 
 	def __call__(self):
 		try:
@@ -69,8 +69,18 @@ class Download:
 			# Retry later.
 			TaskSystem.queueWork(self)
 
+	def __hash__(self):
+		return hash(str(self.url))
+
+	def __eq__(self, other):
+		return str(self.url) == str(other.url)
+
 	def __str__(self):
-		return "Downloader: %s" % self.url
+		return "Download: %s" % str(self.url)
+
+	def __repr__(self):
+		return "Download(%r)" % str(self.url)
+
 
 def pushRandomNextFile():
 	base = Index.index.getRandomSource()
