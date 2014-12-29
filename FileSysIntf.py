@@ -1,4 +1,5 @@
 
+import os
 import time
 import ftplib
 from urllib.parse import urlparse
@@ -49,8 +50,15 @@ def ftpListDir(url):
 
 		ftp.login(**kwargs)
 		path = o.path
-		if path[:1] != "/": path = "/" + path
+		if path[:1] != "/": path = "/" + path # add leading slash
+		while path[1:2] == "/": # remove leading double slashes
+			path = path[1:]
+		path = os.path.normpath(path)
+		if path[-1:] == "/": path = path[:-1] # remove trailing slash
 		ftp.cwd(path)
+		curPwd = ftp.pwd()
+		if curPwd != path:
+			raise OtherException("path doesnt match: %r vs pwd %r" % (path, curPwd))
 
 		lines = []
 		ftp.dir(o.path, lines.append)
