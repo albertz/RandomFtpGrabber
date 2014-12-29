@@ -48,7 +48,9 @@ def ftpListDir(url):
 		if o.password: kwargs["passwd"] = o.password
 
 		ftp.login(**kwargs)
-		ftp.cwd(o.path)
+		path = o.path
+		if path[:1] != "/": path = "/" + path
+		ftp.cwd(path)
 
 		lines = []
 		ftp.dir(o.path, lines.append)
