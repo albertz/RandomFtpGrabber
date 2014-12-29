@@ -65,9 +65,12 @@ class Download:
 	def __call__(self):
 		try:
 			Downloader.download(self.url)
-		except Downloader.DownloadError:
+		except Downloader.DownloadTemporaryError:
 			# Retry later.
 			TaskSystem.queueWork(self)
+		except Downloader.DownloadFatalError:
+			# Cannot handle. Nothing we can do.
+			pass
 
 	def __hash__(self):
 		return hash(str(self.url))

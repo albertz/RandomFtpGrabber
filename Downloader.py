@@ -34,7 +34,8 @@ def convertToUnicode(value):
 	assert isinstance(value, str)
 	return value
 
-class DownloadError(Exception): pass
+class DownloadFatalError(Exception): pass
+class DownloadTemporaryError(Exception): pass
 
 def download(url):
 	filename = os.path.basename(str(url))
@@ -54,18 +55,26 @@ def download(url):
 	print(" ".join(map(repr, args)))
 
 	from subprocess import Popen, PIPE, STDOUT, DEVNULL
-	p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=STDOUT, bufsize=0)
+	env = os.environ.copy()
+	env["LANG"] = env["LC"] = env["LC_ALL"] = "en_US.UTF-8"
+	p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=STDOUT, bufsize=0, env=env)
+
 	progressLineIdx = 0
 	while p.returncode is None:
 		line = p.stdout.readline()
 		line = convertToUnicode(line)
 		line = line.rstrip()
+		if not line: continue # Cleanup output a bit.
 		if _wget_isProgressLine(line):
 			if progressLineIdx % kWgetProgessLineMod == 0:
 				print("%s progress: %s" % (printPrefix, line))
 			progressLineIdx += 1
 		else:
 			print("%s: %s" % (printPrefix, line))
+			# The only good way to check for certain errors.
+			if line.startswith("No such file "):
+				p.kill()
+				raise DownloadFatalError("error: " + line)
 		p.poll()
 	if p.returncode != 0:
-		raise DownloadError("return code %i" % p.returncode)
+		raise DownloadTemporaryError("return code %i" % p.returncode)
