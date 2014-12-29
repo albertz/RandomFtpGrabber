@@ -33,6 +33,7 @@ def workerLoop():
 	better_exchook.install()
 	while True:
 		func = workerQueue.get()
+		Logging.log("Next work item: %s" % func)
 		currentWork.add(func)
 		currentWork.save()
 		try:
