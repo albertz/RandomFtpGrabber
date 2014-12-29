@@ -56,10 +56,11 @@ def download(url):
 			str(url)]
 	print(" ".join(map(repr, args)))
 
-	from subprocess import Popen, PIPE, STDOUT, DEVNULL
+	from subprocess import Popen, PIPE, STDOUT
 	env = os.environ.copy()
 	env["LANG"] = env["LC"] = env["LC_ALL"] = "en_US.UTF-8"
-	p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=STDOUT, bufsize=0, env=env)
+	devnull = open(os.devnull, "rb")
+	p = Popen(args, stdin=devnull, stdout=PIPE, stderr=STDOUT, bufsize=0, env=env)
 
 	progressLineIdx = 0
 	while p.returncode is None:
