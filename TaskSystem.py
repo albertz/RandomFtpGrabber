@@ -11,12 +11,21 @@ kMinQueuedActions = kNumWorkers # fill workerQueue always up to N elements, via 
 
 if not "mainLoopQueue" in vars():
 	mainLoopQueue = Queue()
-if not "workerQueue" in vars():
-	workerQueue = Persistence.load("workerQueue.db", Queue)
-if not "currentWork" in vars():
-	currentWork = Persistence.load("currentWork.db", set)
 if not "exitEvent" in vars():
 	exitEvent = Event()
+
+
+def setup():
+	import Action
+	if not "workerQueue" in globals():
+		global workerQueue
+		workerQueue = Persistence.load("workerQueue.db", Queue, env=vars(Action))
+	if not "currentWork" in globals():
+		global currentWork
+		currentWork = Persistence.load("currentWork.db", set, env=vars(Action))
+
+	_initWatcherThread()
+	_initWorkerThreads()
 
 
 def queueWork(func):
@@ -90,6 +99,4 @@ def _initWatcherThread():
 	watcher.daemon = True
 	watcher.start()
 
-_initWatcherThread()
-_initWorkerThreads()
 

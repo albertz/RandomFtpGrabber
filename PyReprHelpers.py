@@ -1,31 +1,40 @@
 
 import re
+import sys
 from collections import deque
 from queue import Queue
 
 
 def isPythonReprFormat(filename):
-	f = open(filename, "rb")
 	try:
-		firstByte = str(f.read(1))
+		f = open(filename, "r")
+		firstByte = f.read(1)
+		# List, dict, tuple, string or number.
+		if firstByte in "[{(\"'0123456789-":
+			return True
+		f.seek(0)
+		beginning = f.read(100)
+		# Maybe some identifier.
+		if re.match("[_A-Za-z][_a-zA-Z0-9.]*\(.*", beginning):
+			return True
 	except UnicodeDecodeError:
 		return False
-	# List, dict, tuple, string or number.
-	if firstByte in "[{(\"'0123456789-":
-		return True
-	f.seek(0)
-	try:
-		beginning = str(f.read(100))
-	except UnicodeDecodeError:
-		return False
-	# Maybe some identifier.
-	if re.match("[_A-Za-z][_a-zA-Z0-9.]*\(", beginning):
-		return True
 	return False
 
-def loadPythonReprFormat(filename):
+def loadPythonReprFormat(filename, env=None, defaultConstructor=None):
 	code = open(filename, "r").read()
-	return eval(code)
+	if not env:
+		env = {}
+	elif isinstance(env, list):
+		env = dict([(o.__name__, o) for o in env])
+	else:
+		env = dict(env)
+	env["loadQueue"] = loadQueue
+	if hasattr(defaultConstructor, "__module__"):
+		env.update(vars(sys.modules[defaultConstructor.__module__]))
+	elif hasattr(defaultConstructor, "__name__"):
+		env[defaultConstructor.__name__] = defaultConstructor
+	return eval(code, env)
 
 
 def loadQueue(l):

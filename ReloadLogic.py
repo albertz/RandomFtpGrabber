@@ -8,35 +8,37 @@ import sys
 import imp
 import Logging
 
-def getModChangeTime(mod):
-	return os.path.getmtime(mod.__file__)
+def getLocalModChangeTime(filename):
+	return os.path.getmtime(myDir + "/" + filename)
 
 def normModDir(filename):
 	return os.path.normpath(os.path.dirname(os.path.abspath(filename)))
 
 myDir = normModDir(__file__)
-modChangeTimes = {} # mod -> time
+modChangeTimes = {} # modName -> time
 
-def listLocalModules():
-	for mod in sys.modules.values():
-		if not hasattr(mod, "__file__"): continue
-		modDir = normModDir(mod.__file__)
-		if modDir == myDir:
-			yield mod
+def listLocalModuleNames():
+	from glob import glob
+	for fn in glob(myDir + "/*.py"):
+		fn = os.path.basename(fn)
+		modName, _ = os.path.splitext(fn)
+		yield modName
 
 def initModChangeTimes():
-	for mod in listLocalModules():
-		if mod not in modChangeTimes:
-			modChangeTimes[mod] = getModChangeTime(mod)
+	for modName in listLocalModuleNames():
+		if modName not in modChangeTimes:
+			modChangeTimes[modName] = getLocalModChangeTime(modName)
 
 def checkReloadModules():
 	initModChangeTimes() # update maybe not-yet-known modules
 
-	for mod in listLocalModules():
-		if mod not in modChangeTimes: continue
-		lastMtime = modChangeTimes[mod]
-		curMtime = getModChangeTime(mod)
+	for modName in listLocalModuleNames():
+		if modName not in modChangeTimes: continue
+		if modName not in sys.modules: continue
+		lastMtime = modChangeTimes[modName]
+		curMtime = getLocalModChangeTime(modName)
 		if curMtime > lastMtime:
+			mod = sys.modules[modName]
 			Logging.log("reload %s" % mod)
 			try:
 				imp.reload(mod)

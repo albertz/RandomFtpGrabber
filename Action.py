@@ -19,6 +19,7 @@ def getRandomWalker(base):
 		randomWalkers[base] = walker
 		return walker
 
+
 class Download:
 	def __init__(self, url):
 		self.url = str(url)
@@ -78,6 +79,7 @@ class RandomNextFile:
 	def __repr__(self):
 		# Doesn't matter which base, just take another random next time.
 		return "RandomNextFile()"
+
 
 def getNewAction():
 	return RandomNextFile()

@@ -76,6 +76,9 @@ def download(url):
 			if line.startswith("No such file "):
 				p.kill()
 				raise DownloadFatalError("error: " + line)
+			if line.startswith("No such directory "):
+				p.kill()
+				raise DownloadFatalError("error: " + line)
 		p.poll()
 	if p.returncode != 0:
 		raise DownloadTemporaryError("return code %i" % p.returncode)

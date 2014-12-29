@@ -4,8 +4,8 @@ import sys
 from argparse import ArgumentParser
 import os
 
-RootDir = None
-Sources = None
+RootDir = "."
+Sources = []
 
 def init(*rawArgList):
 	import better_exchook
@@ -20,20 +20,22 @@ def init(*rawArgList):
 	if sys.version_info.major != 3:
 		Logging.log("Warning: This code was only tested with Python3.")
 
-	global RootDir
-	RootDir = args.dir
+	import main
+	main.RootDir = args.dir
 	Logging.log("root dir: %s" % RootDir)
 
-	global Sources
-	Sources = open(RootDir + "/sources.txt").read().splitlines()
+	main.Sources = open(RootDir + "/sources.txt").read().splitlines()
+
+	import TaskSystem # important to be initially imported in the main thread
+	TaskSystem.setup()
 
 
 def mainEntry(*rawArgList):
 	init(*rawArgList)
 
+	import TaskSystem
 	import Logging
 	try:
-		import TaskSystem # important to be initially imported in the main thread
 		TaskSystem.mainLoop()
 	except KeyboardInterrupt:
 		Logging.log("KeyboardInterrupt")

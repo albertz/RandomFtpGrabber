@@ -72,7 +72,6 @@ class Index:
 			self._loadSources()
 		else:
 			self.sources = sources
-		assert self.sources
 
 	def _loadSources(self):
 		import main

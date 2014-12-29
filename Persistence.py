@@ -26,7 +26,7 @@ class Saver:
 			f.close()
 
 
-def load(filename, defaultConstructor):
+def load(filename, defaultConstructor, env=None):
 	from PickleHelpers import isPickleFormat
 	from PyReprHelpers import isPythonReprFormat, loadPythonReprFormat
 	import PickleHelpers
@@ -41,7 +41,7 @@ def load(filename, defaultConstructor):
 		try:
 			if isPythonReprFormat(filename):
 				try:
-					obj = loadPythonReprFormat(filename)
+					obj = loadPythonReprFormat(filename, defaultConstructor=defaultConstructor, env=env)
 				except:
 					sys.excepthook(*sys.exc_info())
 					sys.exit(1)
