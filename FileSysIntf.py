@@ -23,7 +23,7 @@ def listDir(url):
 		except ftplib.all_errors as exc:
 			# These might be network errors, etc.
 			# This is very much temporary.
-			raise TemporaryException("undefined other expected: %s" % exc)
+			raise TemporaryException("undefined other expected: %s" % str(exc) or repr(exc))
 
 	raise NotImplementedError
 
@@ -47,7 +47,7 @@ def ftpListDir(url):
 		ftp.dir(o.path, lines.append)
 		if not lines: return [], []
 
-		if "<DIR>" in lines[0] or lines[0][0] not in "d-l":
+		if "<DIR>" in lines[0] or lines[0][:1] not in "d-l":
 			return _ftpListDirWindows(url, lines)
 		else:
 			return _ftpListDirUnix(url, lines)
@@ -58,7 +58,10 @@ def _ftpListDirUnix(url, lines):
 	dirs, files = [], []
 
 	for line in lines:
+		if not line: continue
 		fields = line.split()
+		if len(fields) < 9:
+			raise ValueError("Unix listing, unexpected line, too few fields: %r" % line)
 		name = ' '.join(fields[8:])
 		if line[0] == 'd':
 			container = dirs
@@ -67,7 +70,7 @@ def _ftpListDirUnix(url, lines):
 		elif line[0] == 'l':
 			continue
 		else:
-			raise ValueError("Unix listing, unexpected line: %s" % line.strip())
+			raise ValueError("Unix listing, unexpected line, type: %r" % line)
 		container.append(url + "/" + name)
 
 	return dirs, files
@@ -76,7 +79,10 @@ def _ftpListDirWindows(url, lines):
 	dirs, files = [], []
 
 	for line in lines:
+		if not line: continue
 		fields = line.split()
+		if len(fields) < 4:
+			raise ValueError("Windows listing, unexpected line, too few fields: %r" % line)
 		name = ' '.join(fields[3:])
 		if fields[2].strip() == '<DIR>':
 			container = dirs
