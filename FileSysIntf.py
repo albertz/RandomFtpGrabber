@@ -54,7 +54,7 @@ def ftpListDir(url):
 		while path[1:2] == "/": # remove leading double slashes
 			path = path[1:]
 		path = os.path.normpath(path)
-		if path[-1:] == "/": path = path[:-1] # remove trailing slash
+		if len(path) > 1 and path[-1:] == "/": path = path[:-1] # remove trailing slash
 		ftp.cwd(path)
 		curPwd = ftp.pwd()
 		if curPwd != path:
