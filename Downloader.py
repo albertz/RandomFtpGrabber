@@ -81,5 +81,9 @@ def download(url):
 				p.kill()
 				raise DownloadFatalError("error: " + line)
 		p.poll()
+
 	if p.returncode != 0:
 		raise DownloadTemporaryError("return code %i" % p.returncode)
+
+	Logging.log("%s done." % printPrefix)
+
