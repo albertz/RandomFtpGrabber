@@ -63,7 +63,14 @@ class Download:
 		self.url = url
 
 	def __call__(self):
-		Downloader.download(self.url)
+		try:
+			Downloader.download(self.url)
+		except Downloader.DownloadError:
+			# Retry later.
+			TaskSystem.queueWork(self)
+
+	def __str__(self):
+		return "Downloader: %s" % self.url
 
 def pushRandomNextFile():
 	base = Index.index.getRandomSource()

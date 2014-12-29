@@ -46,7 +46,7 @@ def workerLoop():
 			try:
 				currentWork.remove(func)
 			except Exception as e:
-				print("Error: Dont understand: %s, %r not in %r" % (e, func, currentWork))
+				Logging.log("Error: Dont understand: %s, %r not in %r" % (e, func, currentWork))
 
 def watcherLoop():
 	better_exchook.install()
