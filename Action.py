@@ -1,7 +1,4 @@
 
-import os
-import sys
-import imp
 from RandomFileQueue import RandomFileQueue
 from weakref import WeakKeyDictionary
 from threading import RLock
@@ -10,42 +7,6 @@ import TaskSystem
 import Index
 import FileSysIntf
 
-# First some code with some module reload handling logic to make hacking on it more fun.
-
-def _reloadHandler():
-	import Logging
-	import RandomFileQueue
-	import Index
-	import FileSysIntf
-	import Downloader
-	for mod in [Logging, RandomFileQueue, Index, FileSysIntf, Downloader]:
-		try:
-			imp.reload(mod)
-		except Exception:
-			Logging.logException("reloadHandler", *sys.exc_info())
-
-def _getModChangeTime():
-	return os.path.getmtime(__file__)
-
-if "_modChangeTime" in vars():
-	_reloadHandler()
-_modChangeTime = _getModChangeTime()
-
-def _checkMaybeReload():
-	global modChangeTime
-	mtime = _getModChangeTime()
-	if mtime > _modChangeTime:
-		_reload()
-		return True
-	return False
-
-def _reload():
-	print("reload Action module")
-	import Action
-	imp.reload(Action)
-
-
-# Now the main actions.
 
 lock = RLock()
 randomWalkers = WeakKeyDictionary() # Dir -> RandomFileQueue
@@ -76,31 +37,48 @@ class Download:
 		return hash(str(self.url))
 
 	def __eq__(self, other):
+		if not isinstance(other, Download): return False
 		return str(self.url) == str(other.url)
 
-	def __str__(self):
-		return "Download: %s" % str(self.url)
+	def __lt__(self, other):
+		if not isinstance(other, Download): return False
+		return str(self.url) < str(other.url)
 
 	def __repr__(self):
 		return "Download(%r)" % str(self.url)
 
 
-def pushRandomNextFile():
-	base = Index.index.getRandomSource()
-	walker = getRandomWalker(base)
-	try:
-		url = walker.getNextFile()
-	except FileSysIntf.TemporaryException:
-		# Handled in walker.
-		# We just quit here now.
-		return
-	if not url: return
-	TaskSystem.queueWork(Download(url))
+class RandomNextFile:
+	def __init__(self):
+		self.base = Index.index.getRandomSource()
+
+	def __call__(self):
+		walker = getRandomWalker(self.base)
+		try:
+			url = walker.getNextFile()
+		except FileSysIntf.TemporaryException:
+			# Handled in walker.
+			# We just quit here now.
+			return
+		if not url: return
+		TaskSystem.queueWork(Download(url))
+
+	def __hash__(self):
+		return hash(self.base)
+
+	def __eq__(self, other):
+		if not isinstance(other, RandomNextFile): return False
+		return str(self.base.url) == str(other.base.url)
+
+	def __lt__(self, other):
+		if isinstance(other, Download): return True
+		if not isinstance(other, RandomNextFile): return False
+		return str(self.base.url) < str(other.base.url)
+
+	def __repr__(self):
+		# Doesn't matter which base, just take another random next time.
+		return "RandomNextFile()"
 
 def getNewAction():
-	if _checkMaybeReload():
-		import Action
-		return Action.getNewAction()
-
-	return pushRandomNextFile
+	return RandomNextFile()
 

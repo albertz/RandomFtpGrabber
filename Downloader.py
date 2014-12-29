@@ -1,5 +1,6 @@
 
 import os
+import Logging
 
 kWgetProgessLineMod = 10
 kMaxFilenameLenPrint = 15
@@ -67,10 +68,10 @@ def download(url):
 		if not line: continue # Cleanup output a bit.
 		if _wget_isProgressLine(line):
 			if progressLineIdx % kWgetProgessLineMod == 0:
-				print("%s progress: %s" % (printPrefix, line))
+				Logging.log("%s progress: %s" % (printPrefix, line))
 			progressLineIdx += 1
 		else:
-			print("%s: %s" % (printPrefix, line))
+			Logging.log("%s: %s" % (printPrefix, line))
 			# The only good way to check for certain errors.
 			if line.startswith("No such file "):
 				p.kill()

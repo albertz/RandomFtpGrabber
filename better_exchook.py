@@ -223,7 +223,7 @@ def print_traceback(tb=None, allLocals=None, allGlobals=None):
 			tb = sys._getframe()
 			assert tb
 		except Exception:
-			print("print_traceback: tb is None and sys._getframe() failed")
+			output("print_traceback: tb is None and sys._getframe() failed")
 			return
 	import inspect
 	isframe = inspect.isframe
@@ -303,7 +303,7 @@ def better_exchook(etype, value, tb, debugshell=False, autodebugshell=True):
 	if tb is not None:
 		print_traceback(tb, allLocals=allLocals, allGlobals=allGlobals)
 	else:
-		print("better_exchook: traceback unknown")
+		output("better_exchook: traceback unknown")
 	
 	import types
 	def _some_str(value):

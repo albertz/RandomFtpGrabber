@@ -28,12 +28,14 @@ class FileBase:
 	def __str__(self):
 		return self.url
 
-class File(FileBase): pass
+class File(FileBase):
+	def __repr__(self):
+		return "File(%r)" % self.url
 
 class Dir(FileBase):
-	def __init__(self, url):
+	def __init__(self, url, childs=None):
 		super().__init__(url)
-		self.childs = None
+		self.childs = childs
 		self.lastException = None
 
 	@SyncedOnObj
@@ -60,10 +62,16 @@ class Dir(FileBase):
 	def __str__(self):
 		return self.url
 
+	def __repr__(self):
+		return "Dir(%r, %s)" % (self.url, Persistence.betterRepr(self.childs))
+
 class Index:
-	def __init__(self):
-		self.sources = {}
-		self._loadSources()
+	def __init__(self, sources=None):
+		if not sources:
+			self.sources = {}
+			self._loadSources()
+		else:
+			self.sources = sources
 		assert self.sources
 
 	def _loadSources(self):
@@ -73,6 +81,12 @@ class Index:
 
 	def getRandomSource(self):
 		return random.choice(list(self.sources.values()))
+
+	def getSource(self, source):
+		return self.sources[source]
+
+	def __repr__(self):
+		return "Index(%s)" % Persistence.betterRepr(self.sources)
 
 filesystem = Filesystem()
 
