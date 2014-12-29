@@ -6,8 +6,9 @@ import os
 
 RootDir = "."
 Sources = []
+Args = None
 
-def init(*rawArgList):
+def setup(*rawArgList):
 	import better_exchook
 	better_exchook.install()
 	import Logging
@@ -15,24 +16,29 @@ def init(*rawArgList):
 
 	argParser = ArgumentParser()
 	argParser.add_argument("--dir", default=os.getcwd())
-	args = argParser.parse_args(rawArgList)
+	argParser.add_argument("--numWorkers", type=int)
+	argParser.add_argument("--shell", action='store_true')
+	global Args
+	Args = argParser.parse_args(rawArgList)
 
 	if sys.version_info.major != 3:
 		Logging.log("Warning: This code was only tested with Python3.")
 
 	import main
-	main.RootDir = args.dir
+	main.RootDir = Args.dir
 	Logging.log("root dir: %s" % RootDir)
 
 	main.Sources = open(RootDir + "/sources.txt").read().splitlines()
 
 	import TaskSystem # important to be initially imported in the main thread
+	if Args.numWorkers:
+		TaskSystem.kNumWorkers = Args.numWorkers
+	if Args.shell:
+		TaskSystem.kNumWorkers = 0
 	TaskSystem.setup()
 
 
-def mainEntry(*rawArgList):
-	init(*rawArgList)
-
+def mainEntry():
 	import TaskSystem
 	import Logging
 	try:
@@ -41,7 +47,16 @@ def mainEntry(*rawArgList):
 		Logging.log("KeyboardInterrupt")
 
 
-if __name__ == "__main__":
-	import main
-	main.mainEntry(*sys.argv[1:])
+# Has the effect that this module is know as 'main' and not just '__main__'.
+import main
+
+if __name__ == "main":
+	setup(*sys.argv[1:])
+
+elif __name__ == "__main__":
+	if main.Args.shell:
+		import better_exchook
+		better_exchook.debug_shell(globals(), globals())
+		sys.exit()
+	main.mainEntry()
 
