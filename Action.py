@@ -85,7 +85,7 @@ class RandomNextFile(BaseAction):
 		TaskSystem.queueWork(Download(url))
 
 	def __hash__(self):
-		return hash(self.base)
+		return hash(str(self.base.url))
 
 	def __eq__(self, other):
 		if not isinstance(other, self.__class__): return False
