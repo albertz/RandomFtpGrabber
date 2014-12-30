@@ -51,9 +51,6 @@ def workerLoop():
 	while True:
 		func = workerQueue.get()
 		Logging.log("Next work item: %s" % func)
-		if func not in currentWork:
-			Logging.log("Strange: %r not in currentWork set. Ignoring." % func)
-			continue
 		try:
 			func()
 		except SystemExit:
@@ -61,11 +58,14 @@ def workerLoop():
 		except Exception:
 			Logging.logException("Worker", *sys.exc_info())
 		finally:
-			try:
-				currentWork.remove(func)
-				currentWork.save()
-			except Exception as e:
-				Logging.log("Error: Dont understand: %s, %r not in %r" % (e, func, currentWork))
+			if func not in currentWork:
+				Logging.log("Strange: %r not in currentWork set." % func)
+			else:
+				try:
+					currentWork.remove(func)
+					currentWork.save()
+				except Exception as exc:
+					Logging.log("Error: Dont understand: %s: act %r, work set %r" % (exc, func, currentWork))
 
 
 def watcherLoop():
