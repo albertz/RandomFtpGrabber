@@ -33,7 +33,7 @@ def listDir(url):
 		except ftplib.all_errors as exc:
 			# These might be network errors, etc.
 			# This is very much temporary.
-			raise TemporaryException("undefined other expected: %s" % str(exc) or repr(exc))
+			raise TemporaryException("undefined other expected: %s" % (str(exc) or repr(exc)))
 
 	raise NotImplementedError
 

@@ -7,7 +7,7 @@
 
 import random
 import sys
-import FileSysIntf
+from threading import RLock
 
 kNonloadedDirsExpectedFac = 0.5
 kNonloadedDirsExpectedMin = 100
@@ -23,33 +23,53 @@ class RandomFileQueue:
 		class Dir:
 			owner = self
 			isLoaded = False
+			isLoading = False
 			base = None
 
 			def __init__(self):
 				self.files = []
 				self.loadedDirs = []
 				self.nonloadedDirs = []
+				self.lock = RLock()
+
+			def _startLoading(self):
+				with self.lock:
+					if self.isLoading:
+						# Don't wait for it.
+						# By throwing this exception, we will get the effect that we will retry later.
+						raise self.owner.fs.TemporaryException("parallel thread is loading dir: %s" % self.base)
+					self.isLoading = True
 
 			def load(self):
-				self.isLoaded = True
-				# Note: If we could use the C readdir() more directly, that would be much faster because it already provides the stat info (wether it is a file or dir), so we don't need to do a separate call for isfile/isdir.
+				with self.lock:
+					if self.isLoaded: return
+					self._startLoading()
 				try:
 					listeddir = self.owner.fs.listDir(self.base)
 				except self.owner.fs.TemporaryException:
 					# try again another time
-					self.isLoaded = False
+					self.isLoading = False
 					raise # fall down to bottom
 				except Exception:
 					self.owner.fs.handleException(*sys.exc_info())
-					# it might fail because of permission errors or whatever
+					# This is an unexpected error, which we handle as fatal.
+					# Note that other possible permanent errors (permission error, file not found, or so)
+					# are handled in listDir(), which probably returns also [] then.
 					listeddir = []
+				files = []
+				nonloadedDirs = []
 				for f in listeddir:
 					if self.owner.fs.isFile(f):
-						self.files += [f]
+						files += [f]
 					elif self.owner.fs.isDir(f):
 						subdir = Dir()
 						subdir.base = f
-						self.nonloadedDirs += [subdir]
+						nonloadedDirs += [subdir]
+				with self.lock:
+					self.files = files
+					self.nonloadedDirs = nonloadedDirs
+					self.isLoaded = True
+					self.isLoading = False
 
 			def expectedFilesCount(self):
 				c = 0
@@ -59,10 +79,10 @@ class RandomFileQueue:
 				c += len(self.nonloadedDirs) * \
 					max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
 				return c
-				
+
 			def randomGet(self):
-				if not self.isLoaded: self.load()
-				if not self.isLoaded: return None
+				self.load()
+				assert self.isLoaded
 
 				while True:
 					rmax = self.expectedFilesCount()
@@ -82,13 +102,22 @@ class RandomFileQueue:
 							break
 						r -= c
 					if r is None: continue
-					
-					assert len(self.nonloadedDirs) > 0
-					r = rndInt(0, len(self.nonloadedDirs) - 1)
-					d = self.nonloadedDirs[r]
-					self.nonloadedDirs = self.nonloadedDirs[:r] + self.nonloadedDirs[r+1:]
+
+					# Load any of the nonloadedDirs.
+
+					self._startLoading()
+					with self.lock:
+						assert len(self.nonloadedDirs) > 0
+						r = rndInt(0, len(self.nonloadedDirs) - 1)
+						d = self.nonloadedDirs[r]
+						self.nonloadedDirs = self.nonloadedDirs[:r] + self.nonloadedDirs[r+1:]
+
+					# Don't do in locked state to not hold the lock for too long.
 					d.load()
-					self.loadedDirs += [d]
+
+					with self.lock:
+						self.loadedDirs += [d]
+						self.isLoading = False
 					
 		self.root = Dir()
 		self.root.base = rootdir

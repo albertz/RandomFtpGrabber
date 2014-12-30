@@ -76,12 +76,13 @@ class RandomNextFile(BaseAction):
 	def __call__(self):
 		walker = getRandomWalker(self.base)
 		try:
+			# Either throws TemporaryException or returns None if empty.
 			url = walker.getNextFile()
 		except FileSysIntf.TemporaryException:
 			# Handled in walker.
 			# We just quit here now.
 			return
-		if not url: return
+		if not url: return # Can happen if it is empty.
 		TaskSystem.queueWork(Download(url))
 
 	def __hash__(self):
@@ -100,6 +101,8 @@ class RandomNextFile(BaseAction):
 		# Doesn't matter which base, just take another random next time.
 		return "RandomNextFile()"
 
+	def __str__(self):
+		return "RandomNextFile{%r}" % self.base.url
 
 class CheckDownloadsFinished(BaseAction):
 	""" If we download the remaining files, check if we are finished """

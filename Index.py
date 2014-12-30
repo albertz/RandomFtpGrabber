@@ -43,14 +43,18 @@ class Dir(FileBase):
 		if self.childs is not None:
 			return self.childs
 
+		Logging.log("listDir: %s" % self.url)
+
 		try:
 			dirs, files = FileSysIntf.listDir(self.url)
 		except FileSysIntf.TemporaryException as e:
-			Logging.log("ListDir temporary exception:", e)
-			raise e
+			Logging.log("ListDir temporary exception on %s:" % self.url, str(e) or type(e))
+			# Reraise so that the outer caller gets noticed that it can retry later.
+			raise
 		except Exception as e:
-			Logging.log("ListDir unrecoverable exception:", str(e) or type(e))
+			Logging.log("ListDir unrecoverable exception on %s:" % self.url, str(e) or type(e))
 			self.lastException = e
+			self.childs = []
 			return []
 
 		self.childs = \
