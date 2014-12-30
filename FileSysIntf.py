@@ -2,7 +2,10 @@
 import os
 import time
 import ftplib
-from urllib.parse import urlparse
+from urllib.parse import urlparse as urllib_urlparse
+
+def urlparse(url):
+	return urllib_urlparse(url, allow_fragments=False)
 
 kMaxFtpDepth = 10
 
@@ -46,7 +49,6 @@ def ftpListDir(url):
 	ftp.connect(**kwargs)
 
 	if len(os.path.normpath(o.path).split("/")) > kMaxFtpDepth:
-		# This seems to be like a bug on some ftps.
 		raise OtherException("max ftp depth reached in %r" % url)
 
 	with ftp:
