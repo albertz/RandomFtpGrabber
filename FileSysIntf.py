@@ -4,6 +4,8 @@ import time
 import ftplib
 from urllib.parse import urlparse
 
+kMaxFtpDepth = 10
+
 class OtherException(Exception): pass
 class TemporaryException(Exception): pass
 
@@ -42,6 +44,10 @@ def ftpListDir(url):
 	kwargs = { "host": o.hostname or o.netloc }
 	if o.port: kwargs["port"] = o.port
 	ftp.connect(**kwargs)
+
+	if len(os.path.normpath(o.path).split("/")) > kMaxFtpDepth:
+		# This seems to be like a bug on some ftps.
+		raise OtherException("max ftp depth reached in %r" % url)
 
 	with ftp:
 		kwargs = {}
