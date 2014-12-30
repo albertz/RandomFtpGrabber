@@ -13,15 +13,18 @@ if not "mainLoopQueue" in vars():
 	mainLoopQueue = Queue()
 if not "exitEvent" in vars():
 	exitEvent = Event()
-
+if not "workerQueue" in vars():
+	workerQueue = None
+if not "currentWork" in vars():
+	currentWork = None
 
 def setup():
 	import Action
-	if not "workerQueue" in globals():
-		global workerQueue
+	global workerQueue
+	global currentWork
+	if workerQueue is None:
 		workerQueue = Persistence.load("workerQueue.db", Queue, env=vars(Action))
-	if not "currentWork" in globals():
-		global currentWork
+	if currentWork is None:
 		currentWork = Persistence.load("currentWork.db", set, env=vars(Action))
 
 	_initWatcherThread()
@@ -29,6 +32,11 @@ def setup():
 
 
 def queueWork(func):
+	if currentWork in currentWork:
+		Logging.log("queueWork: already in queue: %r" % func)
+		return # just ignore
+	currentWork.add(func)
+	currentWork.save()
 	workerQueue.put(func)
 	workerQueue.save()
 
@@ -43,28 +51,39 @@ def workerLoop():
 	while True:
 		func = workerQueue.get()
 		Logging.log("Next work item: %s" % func)
-		currentWork.add(func)
-		currentWork.save()
+		if func not in currentWork:
+			Logging.log("Strange: %r not in currentWork set. Ignoring." % func)
+			continue
 		try:
 			func()
-		except KeyboardInterrupt:
+		except SystemExit:
 			return
 		except Exception:
 			Logging.logException("Worker", *sys.exc_info())
 		finally:
 			try:
 				currentWork.remove(func)
+				currentWork.save()
 			except Exception as e:
 				Logging.log("Error: Dont understand: %s, %r not in %r" % (e, func, currentWork))
 
+
 def watcherLoop():
+	import main
+	import Action
 	better_exchook.install()
+
 	while not exitEvent.isSet():
+		if main.DownloadOnly:
+			if len(currentWork) == 0:
+				queueWork(Action.CheckDownloadsFinished())
+			exitEvent.wait(1)
+			continue
+
 		if workerQueue.qsize() >= kMinQueuedActions:
 			exitEvent.wait(1)
 			continue
 
-		import Action
 		func = Action.getNewAction()
 		workerQueue.put(func)
 
@@ -76,15 +95,17 @@ if "watcher" not in vars():
 def _initWorkerThreads():
 	if len(workers) >= kNumWorkers: return
 	assert not workers # needs fixing otherwise
-	# Move all of the queued entries to the set to eliminate duplicates.
-	while not workerQueue.empty():
-		currentWork.add(workerQueue.get())
-	# Now back to the queue.
-	for func in currentWork:
-		queueWork(func)
-	# And cleanup.
-	currentWork.clear()
-	currentWork.save()
+	# Build up set of actions in the queue.
+	currentWorkReal = set()
+	for func in list(workerQueue.queue):
+		currentWorkReal.add(func)
+	# Add all missing actions.
+	# Those are actions which have been run when we quit last time.
+	missingWork = currentWork - currentWorkReal
+	for func in missingWork:
+		workerQueue.put(func)
+	# Fixup current work set.
+	currentWork.update(currentWorkReal)
 	# Now init the threads.
 	for i in range(kNumWorkers - len(workers)):
 		thread = Thread(target=workerLoop, name="Worker %i/%i" % (i + 1, kNumWorkers))

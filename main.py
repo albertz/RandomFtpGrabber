@@ -6,6 +6,7 @@ import os
 
 RootDir = "."
 Sources = []
+DownloadOnly = False
 Args = None
 
 def setup(*rawArgList):
@@ -17,7 +18,8 @@ def setup(*rawArgList):
 	argParser = ArgumentParser()
 	argParser.add_argument("--dir", default=os.getcwd())
 	argParser.add_argument("--numWorkers", type=int)
-	argParser.add_argument("--shell", action='store_true')
+	argParser.add_argument("--shell", action="store_true")
+	argParser.add_argument("--downloadRemaining", action="store_true")
 	global Args
 	Args = argParser.parse_args(rawArgList)
 
@@ -28,7 +30,9 @@ def setup(*rawArgList):
 	main.RootDir = Args.dir
 	Logging.log("root dir: %s" % RootDir)
 
-	main.Sources = open(RootDir + "/sources.txt").read().splitlines()
+	main.DownloadOnly = Args.downloadRemaining
+	if not main.DownloadOnly:
+		main.Sources = open(RootDir + "/sources.txt").read().splitlines()
 
 	import TaskSystem # important to be initially imported in the main thread
 	if Args.numWorkers:
