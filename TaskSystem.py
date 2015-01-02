@@ -58,14 +58,15 @@ def workerLoop():
 		except Exception:
 			Logging.logException("Worker", *sys.exc_info())
 		finally:
-			if func not in currentWork:
-				Logging.log("Strange: %r not in currentWork set." % func)
-			else:
-				try:
-					currentWork.remove(func)
-					currentWork.save()
-				except Exception as exc:
-					Logging.log("Error: Dont understand: %s: act %r, work set %r" % (exc, func, currentWork))
+			# Note, this is buggy:
+			# In case that func() adds itself back to the work-queue,
+			# we would remove it here and then sometime later when we
+			# execute it again, it's not in the set anymore.
+			# Note that some other code also does not expect this.
+			# TODO fix this
+			if func in currentWork:
+				currentWork.remove(func)
+				currentWork.save()
 
 
 def watcherLoop():
