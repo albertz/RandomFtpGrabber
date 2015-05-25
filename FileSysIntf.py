@@ -3,6 +3,10 @@ import os
 import time
 import ftplib
 from urllib.parse import urlparse as urllib_urlparse
+import urllib3
+import bs4 as BeautifulSoup
+
+http = urllib3.PoolManager()
 
 def urlparse(url):
 	return urllib_urlparse(url, allow_fragments=False)
@@ -12,10 +16,12 @@ kMaxFtpDepth = 10
 class OtherException(Exception): pass
 class TemporaryException(Exception): pass
 
+
 def listDir(url):
 	"""
-	returns tuple of lists: (dirs, files)
-	both are absolute urls
+	:type url: str
+	:returns: tuple of lists: (dirs, files). both are absolute urls
+	:rtype: (list[str],list[str])
 	"""
 	o = urlparse(url)
 	if o.scheme == "ftp":
@@ -37,8 +43,11 @@ def listDir(url):
 			# These might be network errors, etc.
 			# This is very much temporary.
 			raise TemporaryException("undefined other expected: %s" % (str(exc) or repr(exc)))
-
+	elif o.scheme in ('http', 'https'):
+		return httpListDir(url)
+	
 	raise NotImplementedError
+
 
 def ftpListDir(url):
 	o = urlparse(url)
@@ -117,3 +126,40 @@ def _ftpListDirWindows(url, lines):
 
 	return dirs, files
 
+
+def _getBaseUrl(url):
+	"""
+	:type url: str
+	"""
+	if url.endswith('/'):
+		return url
+	start_idx = url.index('://') + len('://')
+	if '/' not in url[start_idx:]:  # Just 'http://domain.com'.
+		return url + '/'
+	return url[:url.rindex('/') + 1]
+
+
+def httpListDir(url):
+	base_url = _getBaseUrl(url)
+	r = http.request('GET', url)
+	if r.status != 200:
+		raise OtherException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
+	bs = BeautifulSoup.BeautifulSoup(r.data)  # Parse.
+
+	# This is just a good heuristic.
+	dirs = []
+	files = []
+	for suburl in [anchor['href'] for anchor in bs.findAll('a', href=True)]:
+		# Take all relative paths only.
+		if ':' in suburl: continue
+		if suburl.startswith('/'): continue
+		if suburl.startswith('.'): continue
+		# Ignore any starting with '?' such as '?C=N;O=D'.
+		if suburl.startswith('?'): continue
+		# Ending with '/' is probably a dir.
+		if suburl.endswith('/'):
+			dirs += [base_url + suburl]
+		else:
+			files += [base_url + suburl]
+
+	return dirs, files
