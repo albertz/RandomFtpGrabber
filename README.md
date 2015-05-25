@@ -43,7 +43,7 @@ browses through the given sources and randomly selects files for download.
 See [`RandomFileQueue`](https://github.com/albertz/RandomFtpGrabber/blob/master/RandomFileQueue.py)
 for details on the random walking algorithm.
 If you run it long enough, it still will end up with a full file index, though.
-* FTP indexing via Python `ftplib`. (HTTP is wip).
+* FTP indexing via Python `ftplib`. HTTP via `urllib3` and `BeautifulSoup`.
 * Resumes later on temporary problems (connection timeout, FTP error 4xx),
 skips dirs/files with unrecoverable problems (file not found anymore or so, FTP error 5xx).
 * Multiple worker threads and a task system with a work queue.
@@ -77,6 +77,8 @@ There also could be some movie blacklist. I don't want to download
 movies which I already have seen.
 
 There could be other filters.
+
+Maybe better scraping and web crawling via [Scrapy](http://scrapy.org/).
 
 
 ## Contribute
