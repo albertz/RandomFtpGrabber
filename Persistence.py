@@ -42,7 +42,7 @@ def load(filename, defaultConstructor, env=None):
 			if isPythonReprFormat(filename):
 				try:
 					obj = loadPythonReprFormat(filename, defaultConstructor=defaultConstructor, env=env)
-				except:
+				except Exception:
 					sys.excepthook(*sys.exc_info())
 					sys.exit(1)
 			elif isPickleFormat(filename):
