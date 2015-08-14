@@ -10,9 +10,13 @@ import Logging
 
 
 lock = RLock()
-randomWalkers = WeakKeyDictionary() # Dir -> RandomFileQueue
+randomWalkers = WeakKeyDictionary(); " :type: dict[Index.Dir,RandomFileQueue] "
 
 def getRandomWalker(base):
+	"""
+	:type base: Index.Dir
+	:rtype: RandomFileQueue
+	"""
 	with lock:
 		if base in randomWalkers:
 			return randomWalkers[base]

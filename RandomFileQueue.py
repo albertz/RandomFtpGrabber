@@ -17,6 +17,10 @@ rndInt = random.randint
 
 class RandomFileQueue:
 	def __init__(self, rootdir, filesystem):
+		"""
+		:type rootdir: Index.Dir
+		:type filesystem: Index.Filesystem
+		"""
 		self.rootdir = rootdir
 		self.fs = filesystem
 		import main

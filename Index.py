@@ -71,6 +71,9 @@ class Dir(FileBase):
 
 class Index:
 	def __init__(self, sources=None):
+		"""
+		:type sources: dict[str,Dir]
+		"""
 		self.sources = sources or {}
 		self._loadSources()
 		import main
@@ -86,6 +89,9 @@ class Index:
 				del self.sources[source]
 
 	def getRandomSource(self):
+		"""
+		:rtype: Dir
+		"""
 		return random.choice(list(self.sources.values()))
 
 	def getSource(self, source):
