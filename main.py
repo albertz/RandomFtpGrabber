@@ -50,14 +50,15 @@ def stdinGetChar():
 
 
 def stdinHandlerLoop():
-	from _thread import interrupt_main
 	while True:
 		ch = stdinGetChar()
 		if not ch:
 			continue
 		elif ch == b"q":
 			print("Exit.")
-			interrupt_main()
+			import Threading
+			from Action import IssueSystemExit
+			Threading.doInMainthread(IssueSystemExit(), wait=False)
 			return
 		elif ch == b"r":
 			print("Reload lists.")
