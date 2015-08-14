@@ -71,15 +71,12 @@ class Dir(FileBase):
 
 class Index:
 	def __init__(self, sources=None):
-		if not sources:
-			self.sources = {}
-			self._loadSources()
-		else:
-			self.sources = sources
+		self.sources = sources or {}
+		self._loadSources()
 		import main
-		main.reloadHandlers += [self._reload]
+		main.reloadHandlers += [self._loadSources]
 
-	def _reload(self):
+	def _loadSources(self):
 		import main
 		for source in main.Sources:
 			if source not in self.sources:
@@ -87,11 +84,6 @@ class Index:
 		for source in self.sources:
 			if source not in main.Sources:
 				del self.sources[source]
-
-	def _loadSources(self):
-		import main
-		for source in main.Sources:
-			self.sources[source] = Dir(url=source)
 
 	def getRandomSource(self):
 		return random.choice(list(self.sources.values()))
