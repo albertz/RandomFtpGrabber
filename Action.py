@@ -86,8 +86,8 @@ class RandomNextFile(BaseAction):
 			# Either throws TemporaryException or returns None if empty.
 			url = walker.getNextFile()
 		except FileSysIntf.TemporaryException:
-			# Handled in walker.
-			# We just quit here now.
+			# Handle another one later.
+			# Will automatically be added.
 			return
 		if not url: return # Can happen if it is empty.
 		TaskSystem.queueWork(Download(url))

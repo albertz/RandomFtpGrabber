@@ -61,7 +61,9 @@ class Dir(FileBase):
 			list(map(Dir, dirs)) + \
 			list(map(File, files))
 		index.save()
-		return self.childs
+
+		# By raising TemporaryException here, it will have the effect that we will try again later.
+		raise FileSysIntf.TemporaryException("queried one list-dir, do more next round")
 
 	def __str__(self):
 		return self.url
