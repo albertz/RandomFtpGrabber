@@ -39,6 +39,7 @@ def load(filename, defaultConstructor, env=None):
 	filename = main.RootDir + "/" + filename
 	if os.path.exists(filename) and os.path.getsize(filename) > 0:
 		try:
+			Logging.log("Persistence.load %s" % filename)
 			if isPythonReprFormat(filename):
 				try:
 					obj = loadPythonReprFormat(filename, defaultConstructor=defaultConstructor, env=env)
