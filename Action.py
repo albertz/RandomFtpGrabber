@@ -42,6 +42,9 @@ class Download(BaseAction):
 		self.url = str(url)
 
 	def __call__(self):
+		import main
+		if not main.allowedByBlacklist(self.url):
+			return
 		try:
 			Downloader.download(self.url)
 		except Downloader.DownloadTemporaryError:

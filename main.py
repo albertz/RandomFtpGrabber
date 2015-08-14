@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser
 import os
 import termios
+import re
 
 
 RootDir = "."
@@ -82,9 +83,18 @@ def startStdinHandlerLoop():
 def setupLists():
 	main.Sources = open(RootDir + "/sources.txt").read().splitlines()
 	if os.path.exists(RootDir + "/blacklist.txt"):
-		main.Blacklist = open(RootDir + "/blacklist.txt").read().splitlines()
+		blacklist = open(RootDir + "/blacklist.txt").read().splitlines()
+		main.Blacklist = [re.compile(bad_pattern) for bad_pattern in blacklist]
 	else:
 		main.Blacklist = []
+
+
+def allowedByBlacklist(entry):
+	for bad_pattern_re in main.Blacklist:
+		if bad_pattern_re.match(entry):
+			return False
+	return True
+
 
 def setup(*rawArgList):
 	print("RandomFtpGrabber startup.")

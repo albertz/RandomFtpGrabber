@@ -19,6 +19,8 @@ class RandomFileQueue:
 	def __init__(self, rootdir, filesystem):
 		self.rootdir = rootdir
 		self.fs = filesystem
+		import main
+		self.filterBlacklist = lambda l: filter(lambda entry: main.allowedByBlacklist(entry.url), l)
 
 		class Dir:
 			owner = self
@@ -46,6 +48,7 @@ class RandomFileQueue:
 					self._startLoading()
 				try:
 					listeddir = self.owner.fs.listDir(self.base)
+					listeddir = self.owner.filterBlacklist(listeddir)
 				except self.owner.fs.TemporaryException:
 					# try again another time
 					self.isLoading = False
