@@ -3,13 +3,88 @@
 import sys
 from argparse import ArgumentParser
 import os
+import termios
+
 
 RootDir = "."
 Sources = []
+Blacklist = []
 DownloadOnly = False
 Args = None
 
+
+def printStdinHelp():
+	print("Console control:")
+	print("  <r>:  reload lists (sources, blacklist)")
+	print("  <q>:  quit")
+
+
+def prepareStdin():
+	fd = sys.stdin.fileno()
+
+	if os.isatty(fd):
+		old = termios.tcgetattr(fd)
+		new = termios.tcgetattr(fd)
+		new[3] = new[3] & ~termios.ICANON & ~termios.ECHO
+		# http://www.unixguide.net/unix/programming/3.6.2.shtml
+		new[6][termios.VMIN] = 0
+		new[6][termios.VTIME] = 1  # timeout
+
+		termios.tcsetattr(fd, termios.TCSANOW, new)
+		termios.tcsendbreak(fd, 0)
+
+		import atexit
+		atexit.register(lambda: termios.tcsetattr(fd, termios.TCSANOW, old))
+
+		printStdinHelp()
+
+	else:
+		print("Not a tty. No stdin control.")
+
+
+def stdinGetChar():
+	fd = sys.stdin.fileno()
+	ch = os.read(fd, 7)
+	return ch
+
+
+def stdinHandlerLoop():
+	from _thread import interrupt_main
+	while True:
+		ch = stdinGetChar()
+		if not ch:
+			continue
+		elif ch == b"q":
+			print("Exit.")
+			interrupt_main()
+			return
+		elif ch == b"r":
+			print("Reload lists.")
+			setupLists()
+		else:
+			print("Unknown key command: %r" % ch)
+			printStdinHelp()
+
+
+def startStdinHandlerLoop():
+	prepareStdin()
+
+	from threading import Thread
+	t = Thread(target=stdinHandlerLoop, name="stdin control")
+	t.daemon = True
+	t.start()
+
+
+def setupLists():
+	main.Sources = open(RootDir + "/sources.txt").read().splitlines()
+	if os.path.exists(RootDir + "/blacklist.txt"):
+		main.Blacklist = open(RootDir + "/blacklist.txt").read().splitlines()
+	else:
+		main.Blacklist = []
+
 def setup(*rawArgList):
+	print("RandomFtpGrabber startup.")
+
 	import better_exchook
 	better_exchook.install()
 	import Logging
@@ -26,13 +101,15 @@ def setup(*rawArgList):
 	if sys.version_info.major != 3:
 		Logging.log("Warning: This code was only tested with Python3.")
 
+	startStdinHandlerLoop()
+
 	import main
 	main.RootDir = Args.dir
 	Logging.log("root dir: %s" % RootDir)
 
 	main.DownloadOnly = Args.downloadRemaining
 	if not main.DownloadOnly:
-		main.Sources = open(RootDir + "/sources.txt").read().splitlines()
+		setupLists()
 
 	import TaskSystem # important to be initially imported in the main thread
 	if Args.numWorkers:
