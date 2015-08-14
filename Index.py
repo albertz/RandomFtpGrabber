@@ -76,6 +76,17 @@ class Index:
 			self._loadSources()
 		else:
 			self.sources = sources
+		import main
+		main.reloadHandlers += [self._reload]
+
+	def _reload(self):
+		import main
+		for source in main.Sources:
+			if source not in self.sources:
+				self.sources[source] = Dir(url=source)
+		for source in self.sources:
+			if source not in main.Sources:
+				del self.sources[source]
 
 	def _loadSources(self):
 		import main

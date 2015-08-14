@@ -11,6 +11,7 @@ Sources = []
 Blacklist = []
 DownloadOnly = False
 Args = None
+reloadHandlers = []
 
 
 def printStdinHelp():
@@ -61,6 +62,8 @@ def stdinHandlerLoop():
 		elif ch == b"r":
 			print("Reload lists.")
 			setupLists()
+			for handler in reloadHandlers:
+				handler()
 		else:
 			print("Unknown key command: %r" % ch)
 			printStdinHelp()
