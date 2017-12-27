@@ -48,12 +48,13 @@ class RandomFileQueue:
 
             def load(self):
                 with self.lock:
-                    if self.isLoaded: return
+                    if self.isLoaded:
+                        return
                     self._start_loading()
                 try:
                     listed_dir = self.owner.fs.list_dir(self.base)
                     listed_dir = self.owner.filterBlacklist(listed_dir)
-                except self.owner.fs.TemporaryException:
+                except self.owner.fs.TemporaryException as exc:
                     # try again another time
                     self.isLoading = False
                     raise  # fall down to bottom
@@ -93,7 +94,8 @@ class RandomFileQueue:
 
                 while True:
                     rmax = self.expected_files_count()
-                    if rmax == 0: return None
+                    if rmax == 0:
+                        return None
                     r = rndInt(0, rmax - 1)
 
                     if r < len(self.files):
@@ -104,27 +106,28 @@ class RandomFileQueue:
                         c = d.expected_files_count()
                         if r < c:
                             f = d.random_get()
-                            if f: return f
+                            if f:
+                                return f
                             r = None
                             break
                         r -= c
-                    if r is None: continue
+                    if r is None:
+                        continue
 
                     # Load any of the nonloadedDirs.
 
-                    self._start_loading()
                     with self.lock:
-                        assert len(self.nonloadedDirs) > 0
+                        if len(self.nonloadedDirs) == 0:
+                            continue
                         r = rndInt(0, len(self.nonloadedDirs) - 1)
                         d = self.nonloadedDirs[r]
-                        self.nonloadedDirs = self.nonloadedDirs[:r] + self.nonloadedDirs[r+1:]
 
                     # Don't do in locked state to not hold the lock for too long.
                     d.load()
 
                     with self.lock:
+                        self.nonloadedDirs.remove(d)
                         self.loadedDirs += [d]
-                        self.isLoading = False
 
         self.root = Dir()
         self.root.base = root_dir

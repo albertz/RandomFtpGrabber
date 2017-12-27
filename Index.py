@@ -4,6 +4,7 @@ import FileSysIntf
 from Threading import synced_on_obj
 import random
 import Logging
+from typing import Dict
 
 
 # Interface for RandomFileQueue
@@ -79,7 +80,7 @@ class Dir(FileBase):
 class Index:
     def __init__(self, sources=None):
         """
-        :type sources: dict[str,Dir]
+        :param Dict[str,Dir] sources:
         """
         self.sources = sources or {}
         self._load_sources()

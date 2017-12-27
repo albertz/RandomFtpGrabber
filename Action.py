@@ -56,8 +56,8 @@ class Download(BaseAction):
         except Downloader.DownloadTemporaryError:
             # Retry later.
             # However, also queue some random action to allow other downloads.
-            TaskSystem.queueWork(RandomNextFile())
-            TaskSystem.queueWork(self)
+            TaskSystem.queue_work(RandomNextFile())
+            TaskSystem.queue_work(self)
         except Downloader.DownloadFatalError:
             # Cannot handle. Nothing we can do.
             pass
@@ -79,6 +79,11 @@ class Download(BaseAction):
 
 
 class RandomNextFile(BaseAction):
+    """
+    This will search through the sources, via :func:`get_random_walker`,
+    which will lazily build up the file index and explore all the directories,
+    and add some random file to the download queue.
+    """
     def __init__(self):
         self.base = Index.index.get_random_source()
 
@@ -87,13 +92,15 @@ class RandomNextFile(BaseAction):
         try:
             # Either throws TemporaryException or returns None if empty.
             url = walker.get_next_file()
-        except FileSysIntf.TemporaryException:
+        except FileSysIntf.TemporaryException as exc:
             # Handle another one later.
             # Will automatically be added.
+            print("RandomNextFile: TemporaryException:", exc)
             return
         if not url:
-          return  # Can happen if it is empty.
-        TaskSystem.queueWork(Download(url))
+            print("RandomNextFile: no file found")
+            return  # Can happen if it is empty.
+        TaskSystem.queue_work(Download(url))
 
     def __hash__(self):
         return hash(str(self.base.url))
@@ -135,7 +142,7 @@ class CheckDownloadsFinished(BaseAction):
             Threading.do_in_main_thread(IssueSystemExit(), wait=False)
         else:
             # Check again later.
-            TaskSystem.queueWork(CheckDownloadsFinished())
+            TaskSystem.queue_work(CheckDownloadsFinished())
 
 
 class IssueSystemExit(BaseAction):

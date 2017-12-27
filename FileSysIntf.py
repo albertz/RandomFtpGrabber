@@ -35,7 +35,7 @@ def list_dir(url):
         try:
             return ftp_list_dir(url)
         except ftplib.error_temp as exc:
-            time.sleep(1) # sleep to not hammer too much
+            time.sleep(1)  # sleep to not hammer too much
             raise TemporaryException(exc)
         except ftplib.Error as exc:
             # All others are probably errors where we cannot recover from.
@@ -43,7 +43,10 @@ def list_dir(url):
             # However, some FTP servers wrongly classify certain errors,
             # and we check for them first.
             if "the maximum number of allowed clients" in str(exc):
-                time.sleep(1) # sleep to not hammer too much
+                time.sleep(1)  # sleep to not hammer too much
+                raise TemporaryException(exc)
+            if "the maximum number of connections" in str(exc):
+                time.sleep(1)
                 raise TemporaryException(exc)
             raise OtherException(exc)
         except ftplib.all_errors as exc:

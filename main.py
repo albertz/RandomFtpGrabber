@@ -18,6 +18,7 @@ reloadHandlers = []
 def print_stdin_help():
     print("Console control:")
     print("  <r>:  reload lists (sources, blacklist)")
+    print("  <d>:  debug: show all threads")
     print("  <q>:  quit")
 
 
@@ -66,6 +67,9 @@ def stdin_handler_loop():
             setup_lists()
             for handler in reloadHandlers:
                 handler()
+        elif ch == b"d":
+            import better_exchook
+            better_exchook.dump_all_thread_tracebacks()
         else:
             print("Unknown key command: %r" % ch)
             print_stdin_help()
@@ -81,7 +85,7 @@ def start_stdin_handler_loop():
 
 
 def setup_lists():
-    main.Sources = open(RootDir + "/sources.txt").read().splitlines()
+    main.Sources = [l for l in open(RootDir + "/sources.txt").read().splitlines() if l and not l.startswith("#")]
     if os.path.exists(RootDir + "/blacklist.txt"):
         blacklist = open(RootDir + "/blacklist.txt").read().splitlines()
         main.Blacklist = [re.compile(bad_pattern) for bad_pattern in blacklist]

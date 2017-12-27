@@ -6,8 +6,9 @@ import better_exchook
 import Persistence
 import Logging
 
+
 kNumWorkers = 5
-kMinQueuedActions = kNumWorkers # fill workerQueue always up to N elements, via the watcher thread
+kMinQueuedActions = kNumWorkers  # fill workerQueue always up to N elements, via the watcher thread
 
 
 # Reloads should work.
@@ -16,9 +17,9 @@ if "mainLoopQueue" not in vars():
 if "exitEvent" not in vars():
     exitEvent = Event()
 if "workerQueue" not in vars():
-    workerQueue = None
+    workerQueue = None  # type: Queue
 if "currentWork" not in vars():
-    currentWork = None
+    currentWork = None  # type: set
 
 
 def setup():
@@ -34,13 +35,15 @@ def setup():
     _init_worker_threads()
 
 
-def queueWork(func):
+def queue_work(func):
     if currentWork in currentWork:
         Logging.log("queueWork: already in queue: %r" % func)
         return  # just ignore
     currentWork.add(func)
+    # noinspection PyUnresolvedReferences
     currentWork.save()
     workerQueue.put(func)
+    # noinspection PyUnresolvedReferences
     workerQueue.save()
 
 
@@ -54,7 +57,7 @@ def worker_loop():
     better_exchook.install()
     while True:
         func = workerQueue.get()
-        Logging.log("Next work item: %s" % func)
+        Logging.log("Next work item: %s" % func, "remaining: %i" % workerQueue.qsize())
         try:
             func()
         except SystemExit:
@@ -70,6 +73,7 @@ def worker_loop():
             # TODO fix this
             if func in currentWork:
                 currentWork.remove(func)
+                # noinspection PyUnresolvedReferences
                 currentWork.save()
 
 
@@ -81,7 +85,7 @@ def watcher_loop():
     while not exitEvent.isSet():
         if main.DownloadOnly:
             if len(currentWork) == 0:
-                queueWork(Action.CheckDownloadsFinished())
+                queue_work(Action.CheckDownloadsFinished())
             exitEvent.wait(1)
             continue
 
