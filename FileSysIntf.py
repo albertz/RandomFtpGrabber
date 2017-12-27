@@ -4,20 +4,27 @@ import time
 import ftplib
 from urllib.parse import urlparse as urllib_urlparse
 import urllib3
-import bs4 as BeautifulSoup
+import bs4
 
 http = urllib3.PoolManager()
+
 
 def urlparse(url):
     return urllib_urlparse(url, allow_fragments=False)
 
+
 kMaxFtpDepth = 10
 
-class OtherException(Exception): pass
-class TemporaryException(Exception): pass
+
+class OtherException(Exception):
+    pass
 
 
-def listDir(url):
+class TemporaryException(Exception):
+    pass
+
+
+def list_dir(url):
     """
     :type url: str
     :returns: tuple of lists: (dirs, files). both are absolute urls
@@ -26,7 +33,7 @@ def listDir(url):
     o = urlparse(url)
     if o.scheme == "ftp":
         try:
-            return ftpListDir(url)
+            return ftp_list_dir(url)
         except ftplib.error_temp as exc:
             time.sleep(1) # sleep to not hammer too much
             raise TemporaryException(exc)
@@ -44,12 +51,12 @@ def listDir(url):
             # This is very much temporary.
             raise TemporaryException("undefined other expected: %s" % (str(exc) or repr(exc)))
     elif o.scheme in ('http', 'https'):
-        return httpListDir(url)
-    
+        return http_list_dir(url)
+
     raise NotImplementedError
 
 
-def ftpListDir(url):
+def ftp_list_dir(url):
     o = urlparse(url)
     ftp = ftplib.FTP()
 
@@ -82,13 +89,14 @@ def ftpListDir(url):
         if not lines: return [], []
 
         if "<DIR>" in lines[0] or lines[0][:1] not in "d-l":
-            return _ftpListDirWindows(url, lines)
+            return _ftp_list_dir_windows(url, lines)
         else:
-            return _ftpListDirUnix(url, lines)
+            return _ftp_list_dir_unix(url, lines)
+
 
 # thanks https://github.com/laserson/ftptree/blob/master/crawltree.py
 
-def _ftpListDirUnix(url, lines):
+def _ftp_list_dir_unix(url, lines):
     dirs, files = [], []
 
     for line in lines:
@@ -109,7 +117,8 @@ def _ftpListDirUnix(url, lines):
 
     return dirs, files
 
-def _ftpListDirWindows(url, lines):
+
+def _ftp_list_dir_windows(url, lines):
     dirs, files = [], []
 
     for line in lines:
@@ -127,7 +136,7 @@ def _ftpListDirWindows(url, lines):
     return dirs, files
 
 
-def _getBaseUrl(url):
+def _get_base_url(url):
     """
     :type url: str
     """
@@ -139,27 +148,27 @@ def _getBaseUrl(url):
     return url[:url.rindex('/') + 1]
 
 
-def httpListDir(url):
-    base_url = _getBaseUrl(url)
+def http_list_dir(url):
+    base_url = _get_base_url(url)
     r = http.request('GET', url)
     if r.status != 200:
         raise OtherException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
-    bs = BeautifulSoup.BeautifulSoup(r.data)  # Parse.
+    bs = bs4.BeautifulSoup(r.data)  # Parse.
 
     # This is just a good heuristic.
     dirs = []
     files = []
-    for suburl in [anchor['href'] for anchor in bs.findAll('a', href=True)]:
+    for sub_url in [anchor['href'] for anchor in bs.findAll('a', href=True)]:
         # Take all relative paths only.
-        if ':' in suburl: continue
-        if suburl.startswith('/'): continue
-        if suburl.startswith('.'): continue
+        if ':' in sub_url: continue
+        if sub_url.startswith('/'): continue
+        if sub_url.startswith('.'): continue
         # Ignore any starting with '?' such as '?C=N;O=D'.
-        if suburl.startswith('?'): continue
+        if sub_url.startswith('?'): continue
         # Ending with '/' is probably a dir.
-        if suburl.endswith('/'):
-            dirs += [base_url + suburl]
+        if sub_url.endswith('/'):
+            dirs += [base_url + sub_url]
         else:
-            files += [base_url + suburl]
+            files += [base_url + sub_url]
 
     return dirs, files

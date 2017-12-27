@@ -16,15 +16,15 @@ rndInt = random.randint
 
 
 class RandomFileQueue:
-    def __init__(self, rootdir, filesystem):
+    def __init__(self, root_dir, filesystem):
         """
-        :type rootdir: Index.Dir
-        :type filesystem: Index.Filesystem
+        :param Index.Dir root_dir:
+        :param Index.Filesystem filesystem:
         """
-        self.rootdir = rootdir
+        self.root_dir = root_dir
         self.fs = filesystem
         import main
-        self.filterBlacklist = lambda l: filter(lambda entry: main.allowedByBlacklist(entry.url), l)
+        self.filterBlacklist = lambda l: filter(lambda entry: main.allowed_by_blacklist(entry.url), l)
 
         class Dir:
             owner = self
@@ -38,7 +38,7 @@ class RandomFileQueue:
                 self.nonloadedDirs = []
                 self.lock = RLock()
 
-            def _startLoading(self):
+            def _start_loading(self):
                 with self.lock:
                     if self.isLoading:
                         # Don't wait for it.
@@ -49,26 +49,26 @@ class RandomFileQueue:
             def load(self):
                 with self.lock:
                     if self.isLoaded: return
-                    self._startLoading()
+                    self._start_loading()
                 try:
-                    listeddir = self.owner.fs.listDir(self.base)
-                    listeddir = self.owner.filterBlacklist(listeddir)
+                    listed_dir = self.owner.fs.list_dir(self.base)
+                    listed_dir = self.owner.filterBlacklist(listed_dir)
                 except self.owner.fs.TemporaryException:
                     # try again another time
                     self.isLoading = False
-                    raise # fall down to bottom
+                    raise  # fall down to bottom
                 except Exception:
-                    self.owner.fs.handleException(*sys.exc_info())
+                    self.owner.fs.handle_exception(*sys.exc_info())
                     # This is an unexpected error, which we handle as fatal.
                     # Note that other possible permanent errors (permission error, file not found, or so)
                     # are handled in listDir(), which probably returns also [] then.
-                    listeddir = []
+                    listed_dir = []
                 files = []
                 nonloadedDirs = []
-                for f in listeddir:
-                    if self.owner.fs.isFile(f):
+                for f in listed_dir:
+                    if self.owner.fs.is_file(f):
                         files += [f]
-                    elif self.owner.fs.isDir(f):
+                    elif self.owner.fs.is_dir(f):
                         subdir = Dir()
                         subdir.base = f
                         nonloadedDirs += [subdir]
@@ -78,32 +78,32 @@ class RandomFileQueue:
                     self.isLoaded = True
                     self.isLoading = False
 
-            def expectedFilesCount(self):
+            def expected_files_count(self):
                 c = 0
                 c += len(self.files)
                 for d in self.loadedDirs:
-                    c += d.expectedFilesCount()
+                    c += d.expected_files_count()
                 c += len(self.nonloadedDirs) * \
                     max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
                 return c
 
-            def randomGet(self):
+            def random_get(self):
                 self.load()
                 assert self.isLoaded
 
                 while True:
-                    rmax = self.expectedFilesCount()
+                    rmax = self.expected_files_count()
                     if rmax == 0: return None
                     r = rndInt(0, rmax - 1)
-                    
+
                     if r < len(self.files):
                         return self.files[r]
                     r -= len(self.files)
-                    
+
                     for d in self.loadedDirs:
-                        c = d.expectedFilesCount()
+                        c = d.expected_files_count()
                         if r < c:
-                            f = d.randomGet()
+                            f = d.random_get()
                             if f: return f
                             r = None
                             break
@@ -112,7 +112,7 @@ class RandomFileQueue:
 
                     # Load any of the nonloadedDirs.
 
-                    self._startLoading()
+                    self._start_loading()
                     with self.lock:
                         assert len(self.nonloadedDirs) > 0
                         r = rndInt(0, len(self.nonloadedDirs) - 1)
@@ -125,9 +125,9 @@ class RandomFileQueue:
                     with self.lock:
                         self.loadedDirs += [d]
                         self.isLoading = False
-                    
+
         self.root = Dir()
-        self.root.base = rootdir
-        
-    def getNextFile(self):
-        return self.root.randomGet()
+        self.root.base = root_dir
+
+    def get_next_file(self):
+        return self.root.random_get()

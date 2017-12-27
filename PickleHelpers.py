@@ -6,12 +6,13 @@ import copyreg
 import types
 import pickle
 
-def isPickleFormat(filename):
+
+def is_pickle_format(filename):
     # http://stackoverflow.com/questions/13939913/how-to-test-if-a-file-has-been-created-by-pickle
     f = open(filename, "rb")
     f.seek(-1, os.SEEK_END)
-    lastByte = f.read(1)
-    if lastByte == pickle.STOP:
+    last_byte = f.read(1)
+    if last_byte == pickle.STOP:
         return True
     return False
 
@@ -22,40 +23,51 @@ def _pickle_method(method):
     cls = method.im_class
     return _unpickle_method, (func_name, obj, cls)
 
+
 def _unpickle_method(func_name, obj, cls):
     func = cls.__dict__[func_name]
     return func.__get__(obj, cls)
+
 
 def _pickle_function(func, **kwargs):
     import Logging
     Logging.log("Error, not supported to pickle functions!")
     Logging.log(func.__name__, func.__qualname__)
     import better_exchook
-    better_exchook.print_traceback()
+    better_exchook.print_tb(None)
     raise Exception("no function pickling possible")
+
 
 def _pickle_weakref(r):
     return _unpickle_weakref, (r(),)
 
+
 def _unpickle_weakref(obj):
     return weakref.ref(obj)
 
+
+# noinspection PyPep8Naming
 def _pickle_Queue(q):
     with q.mutex:
-        l = list(q.queue)
-    return _unpickle_Queue, (l,)
+        ls = list(q.queue)
+    return _unpickle_Queue, (ls,)
 
-def _unpickle_Queue(l):
+
+# noinspection PyPep8Naming
+def _unpickle_Queue(ls):
     q = queue.Queue()
-    q.queue = q.queue.__class__(l)
+    q.queue = q.queue.__class__(ls)
     return q
 
-didSetup = False
+
+_did_setup = False
+
 
 def setup():
-    global didSetup
-    if didSetup: return
-    didSetup = True
+    global _did_setup
+    if _did_setup:
+        return
+    _did_setup = True
 
     copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
     copyreg.pickle(types.FunctionType, _pickle_function, _unpickle_method)

@@ -36,7 +36,7 @@ indexing.
 
 * Python 3.
 * Downloads via `wget`.
-* Provide a list of source URLs in the file `./source.txt`.
+* Provide a list of source URLs in the file `./sources.txt`.
 * Lazy random sampled indexing of the files.
 It doesn't build a full index in the beginning, it rather randomly
 browses through the given sources and randomly selects files for download.

@@ -1,25 +1,27 @@
 
 import Persistence
 import FileSysIntf
-from Threading import SyncedOnObj
+from Threading import synced_on_obj
 import random
 import Logging
 
+
 # Interface for RandomFileQueue
 class Filesystem:
-    def listDir(self, path):
-        return path.listDir()
+    def list_dir(self, path):
+        return path.list_dir()
 
-    def isFile(self, path):
+    def is_file(self, path):
         return isinstance(path, File)
 
-    def isDir(self, path):
+    def is_dir(self, path):
         return isinstance(path, Dir)
 
-    def handleException(self, exctype, value, traceback):
-        Logging.logException("Filesystem", exctype, value, traceback)
+    def handle_exception(self, exctype, value, traceback):
+        Logging.log_exception("Filesystem", exctype, value, traceback)
 
     TemporaryException = FileSysIntf.TemporaryException
+
 
 class FileBase:
     def __init__(self, url):
@@ -28,25 +30,27 @@ class FileBase:
     def __str__(self):
         return self.url
 
+
 class File(FileBase):
     def __repr__(self):
         return "File(%r)" % self.url
 
+
 class Dir(FileBase):
-    def __init__(self, url, childs=None):
+    def __init__(self, url, children=None):
         super().__init__(url)
-        self.childs = childs
+        self.children = children
         self.lastException = None
 
-    @SyncedOnObj
-    def listDir(self):
-        if self.childs is not None:
-            return self.childs
+    @synced_on_obj
+    def list_dir(self):
+        if self.children is not None:
+            return self.children
 
         Logging.log("listDir: %s" % self.url)
 
         try:
-            dirs, files = FileSysIntf.listDir(self.url)
+            dirs, files = FileSysIntf.list_dir(self.url)
         except FileSysIntf.TemporaryException as e:
             Logging.log("ListDir temporary exception on %s:" % self.url, str(e) or type(e))
             # Reraise so that the outer caller gets noticed that it can retry later.
@@ -54,10 +58,10 @@ class Dir(FileBase):
         except Exception as e:
             Logging.log("ListDir unrecoverable exception on %s:" % self.url, str(e) or type(e))
             self.lastException = e
-            self.childs = []
+            self.children = []
             return []
 
-        self.childs = \
+        self.children = \
             list(map(Dir, dirs)) + \
             list(map(File, files))
         index.save()
@@ -69,7 +73,8 @@ class Dir(FileBase):
         return self.url
 
     def __repr__(self):
-        return "Dir(%r, %s)" % (self.url, Persistence.betterRepr(self.childs))
+        return "Dir(%r, %s)" % (self.url, Persistence.better_repr(self.children))
+
 
 class Index:
     def __init__(self, sources=None):
@@ -77,11 +82,11 @@ class Index:
         :type sources: dict[str,Dir]
         """
         self.sources = sources or {}
-        self._loadSources()
+        self._load_sources()
         import main
-        main.reloadHandlers += [self._loadSources]
+        main.reloadHandlers += [self._load_sources]
 
-    def _loadSources(self):
+    def _load_sources(self):
         import main
         for source in main.Sources:
             if source not in self.sources:
@@ -90,17 +95,18 @@ class Index:
             if source not in main.Sources:
                 del self.sources[source]
 
-    def getRandomSource(self):
+    def get_random_source(self):
         """
         :rtype: Dir
         """
         return random.choice(list(self.sources.values()))
 
-    def getSource(self, source):
+    def get_source(self, source):
         return self.sources[source]
 
     def __repr__(self):
-        return "Index(%s)" % Persistence.betterRepr(self.sources)
+        return "Index(%s)" % Persistence.better_repr(self.sources)
+
 
 filesystem = Filesystem()
 

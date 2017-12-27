@@ -1,34 +1,40 @@
 
 import sys
 import weakref
-from threading import currentThread, Event, RLock, Lock
+from threading import current_thread, Event, RLock, Lock
 
-mainThread = currentThread() # expect that we import this from the main thread
 
-def doInMainthread(func, wait):
+mainThread = current_thread()  # expect that we import this from the main thread
+
+
+def do_in_main_thread(func, wait):
     import TaskSystem
 
-    if not wait: # don't wait
+    if not wait:  # don't wait
         TaskSystem.mainLoopQueue.put(func)
         return
 
-    if currentThread() is mainThread:
+    if current_thread() is mainThread:
         return func()
     else:
-        class result:
+        class Result:
             doneEvent = Event()
             returnValue = None
             excInfo = None
+
         def wrapped():
             try:
-                result.returnValue = func()
+                Result.returnValue = func()
             except BaseException:
-                result.excInfo = sys.exc_info()
-            result.doneEvent.set()
+                Result.excInfo = sys.exc_info()
+            Result.doneEvent.set()
+
         TaskSystem.mainLoopQueue.put(wrapped)
-        result.doneEvent.wait()
-        if result.excInfo: raise result.excInfo[1]
-        return result.returnValue
+        Result.doneEvent.wait()
+        if Result.excInfo:
+            raise Result.excInfo[1]
+        return Result.returnValue
+
 
 class Caller:
     def __init__(self, func, *args, **kwargs):
@@ -39,25 +45,26 @@ class Caller:
     def __call__(self):
         self.func()
 
-class DoInMainthreadDecoratorWait:
+
+class DoInMainThreadDecoratorWait:
     def __init__(self, func):
         self.func = func
 
     def __call__(self, *args, **kwargs):
-        return doInMainthread(Caller(self.func, *args, **kwargs), wait=True)
+        return do_in_main_thread(Caller(self.func, *args, **kwargs), wait=True)
 
-class DoInMainthreadDecoratorNowait:
+
+class DoInMainThreadDecoratorNowait:
     def __init__(self, func):
         self.func = func
 
     def __call__(self, *args, **kwargs):
-        return doInMainthread(Caller(self.func, *args, **kwargs), wait=False)
-
+        return do_in_main_thread(Caller(self.func, *args, **kwargs), wait=False)
 
 
 class LocksDict:
-    def __init__(self, lockClazz=RLock):
-        self.lockClazz = lockClazz
+    def __init__(self, lock_clazz=RLock):
+        self.lockClazz = lock_clazz
         self.lock = Lock()
         self.weakKeyDict = weakref.WeakKeyDictionary()
 
@@ -69,9 +76,12 @@ class LocksDict:
             self.weakKeyDict[item] = lock
             return lock
 
-def SyncedOnObj(func):
+
+def synced_on_obj(func):
     locks = LocksDict()
-    def decoratedFunc(self, *args, **kwargs):
+
+    def decorated_func(self, *args, **kwargs):
         with locks[self]:
             return func(self, *args, **kwargs)
-    return decoratedFunc
+
+    return decorated_func

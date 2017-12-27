@@ -43,6 +43,6 @@ def checkReloadModules():
             try:
                 imp.reload(mod)
             except Exception:
-                Logging.logException("reloadHandler", *sys.exc_info())
+                Logging.log_exception("reloadHandler", *sys.exc_info())
 
 initModChangeTimes()

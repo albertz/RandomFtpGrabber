@@ -7,20 +7,22 @@ import TaskSystem
 import Index
 import FileSysIntf
 import Logging
+from typing import Dict
 
 
 lock = RLock()
-randomWalkers = WeakKeyDictionary(); " :type: dict[Index.Dir,RandomFileQueue] "
+randomWalkers = WeakKeyDictionary()  # type: Dict[Index.Dir,RandomFileQueue]
 
-def getRandomWalker(base):
+
+def get_random_walker(base):
     """
-    :type base: Index.Dir
+    :param Index.Dir base:
     :rtype: RandomFileQueue
     """
     with lock:
         if base in randomWalkers:
             return randomWalkers[base]
-        walker = RandomFileQueue(rootdir=base, filesystem=Index.filesystem)
+        walker = RandomFileQueue(root_dir=base, filesystem=Index.filesystem)
         randomWalkers[base] = walker
         return walker
 
@@ -47,7 +49,7 @@ class Download(BaseAction):
 
     def __call__(self):
         import main
-        if not main.allowedByBlacklist(self.url):
+        if not main.allowed_by_blacklist(self.url):
             return
         try:
             Downloader.download(self.url)
@@ -78,25 +80,27 @@ class Download(BaseAction):
 
 class RandomNextFile(BaseAction):
     def __init__(self):
-        self.base = Index.index.getRandomSource()
+        self.base = Index.index.get_random_source()
 
     def __call__(self):
-        walker = getRandomWalker(self.base)
+        walker = get_random_walker(self.base)
         try:
             # Either throws TemporaryException or returns None if empty.
-            url = walker.getNextFile()
+            url = walker.get_next_file()
         except FileSysIntf.TemporaryException:
             # Handle another one later.
             # Will automatically be added.
             return
-        if not url: return # Can happen if it is empty.
+        if not url:
+          return  # Can happen if it is empty.
         TaskSystem.queueWork(Download(url))
 
     def __hash__(self):
         return hash(str(self.base.url))
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__): return False
+        if not isinstance(other, self.__class__):
+            return False
         return str(self.base.url) == str(other.base.url)
 
     def __lt__(self, other):
@@ -110,6 +114,7 @@ class RandomNextFile(BaseAction):
 
     def __str__(self):
         return "RandomNextFile{%r}" % self.base.url
+
 
 class CheckDownloadsFinished(BaseAction):
     """ If we download the remaining files, check if we are finished """
@@ -127,7 +132,7 @@ class CheckDownloadsFinished(BaseAction):
         if TaskSystem.currentWork.size() <= 1: # should only be ourself
             # Exit.
             Logging.log("All downloads finished.")
-            Threading.doInMainthread(IssueSystemExit(), wait=False)
+            Threading.do_in_main_thread(IssueSystemExit(), wait=False)
         else:
             # Check again later.
             TaskSystem.queueWork(CheckDownloadsFinished())

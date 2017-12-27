@@ -9,14 +9,17 @@ import Logging
 kNumWorkers = 5
 kMinQueuedActions = kNumWorkers # fill workerQueue always up to N elements, via the watcher thread
 
-if not "mainLoopQueue" in vars():
+
+# Reloads should work.
+if "mainLoopQueue" not in vars():
     mainLoopQueue = Queue()
-if not "exitEvent" in vars():
+if "exitEvent" not in vars():
     exitEvent = Event()
-if not "workerQueue" in vars():
+if "workerQueue" not in vars():
     workerQueue = None
-if not "currentWork" in vars():
+if "currentWork" not in vars():
     currentWork = None
+
 
 def setup():
     import Action
@@ -27,26 +30,27 @@ def setup():
     if currentWork is None:
         currentWork = Persistence.load("currentWork.db", set, env=vars(Action))
 
-    _initWatcherThread()
-    _initWorkerThreads()
+    _init_watcher_thread()
+    _init_worker_threads()
 
 
 def queueWork(func):
     if currentWork in currentWork:
         Logging.log("queueWork: already in queue: %r" % func)
-        return # just ignore
+        return  # just ignore
     currentWork.add(func)
     currentWork.save()
     workerQueue.put(func)
     workerQueue.save()
 
 
-def mainLoop():
+def main_loop():
     while True:
         func = mainLoopQueue.get()
         func()
 
-def workerLoop():
+
+def worker_loop():
     better_exchook.install()
     while True:
         func = workerQueue.get()
@@ -56,7 +60,7 @@ def workerLoop():
         except SystemExit:
             return
         except Exception:
-            Logging.logException("Worker", *sys.exc_info())
+            Logging.log_exception("Worker", *sys.exc_info())
         finally:
             # Note, this is buggy:
             # In case that func() adds itself back to the work-queue,
@@ -69,7 +73,7 @@ def workerLoop():
                 currentWork.save()
 
 
-def watcherLoop():
+def watcher_loop():
     import main
     import Action
     better_exchook.install()
@@ -88,13 +92,16 @@ def watcherLoop():
         func = Action.getNewAction()
         workerQueue.put(func)
 
+
 if "workers" not in vars():
     workers = []
 if "watcher" not in vars():
     watcher = None
 
-def _initWorkerThreads():
-    if len(workers) >= kNumWorkers: return
+
+def _init_worker_threads():
+    if len(workers) >= kNumWorkers:
+        return
     assert not workers # needs fixing otherwise
     # Build up set of actions in the queue.
     currentWorkReal = set()
@@ -109,15 +116,16 @@ def _initWorkerThreads():
     currentWork.update(currentWorkReal)
     # Now init the threads.
     for i in range(kNumWorkers - len(workers)):
-        thread = Thread(target=workerLoop, name="Worker %i/%i" % (i + 1, kNumWorkers))
+        thread = Thread(target=worker_loop, name="Worker %i/%i" % (i + 1, kNumWorkers))
         workers.append(thread)
         thread.daemon = True
         thread.start()
 
-def _initWatcherThread():
+
+def _init_watcher_thread():
     global watcher
     if watcher: return
-    watcher = Thread(target=watcherLoop, name="Watcher")
+    watcher = Thread(target=watcher_loop, name="Watcher")
     watcher.daemon = True
     watcher.start()
 

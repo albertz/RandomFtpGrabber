@@ -5,12 +5,12 @@ from collections import deque
 from queue import Queue
 
 
-def isPythonReprFormat(filename):
+def is_python_repr_format(filename):
     try:
         f = open(filename, "r")
-        firstByte = f.read(1)
+        first_byte = f.read(1)
         # List, dict, tuple, string or number.
-        if firstByte in "[{(\"'0123456789-":
+        if first_byte in "[{(\"'0123456789-":
             return True
         f.seek(0)
         beginning = f.read(100)
@@ -21,7 +21,8 @@ def isPythonReprFormat(filename):
         return False
     return False
 
-def loadPythonReprFormat(filename, env=None, defaultConstructor=None):
+
+def load_python_repr_format(filename, env=None, defaultConstructor=None):
     code = open(filename, "r").read()
     if not env:
         env = {}
@@ -29,7 +30,7 @@ def loadPythonReprFormat(filename, env=None, defaultConstructor=None):
         env = dict([(o.__name__, o) for o in env])
     else:
         env = dict(env)
-    env["loadQueue"] = loadQueue
+    env["loadQueue"] = load_queue
     if hasattr(defaultConstructor, "__module__"):
         env.update(vars(sys.modules[defaultConstructor.__module__]))
     elif hasattr(defaultConstructor, "__name__"):
@@ -37,26 +38,26 @@ def loadPythonReprFormat(filename, env=None, defaultConstructor=None):
     return eval(code, env)
 
 
-def loadQueue(l):
+def load_queue(l):
     q = Queue()
     q.queue = q.queue.__class__(l)
     return q
 
 
-def betterRepr(o):
+def better_repr(o):
     # the main difference: this one is deterministic
     # the orig dict.__repr__ has the order undefined.
     if isinstance(o, list):
-        return "[\n" + "".join([betterRepr(v) + ",\n" for v in o]) + "]"
+        return "[\n" + "".join([better_repr(v) + ",\n" for v in o]) + "]"
     if isinstance(o, deque):
-        return "deque([\n" + "".join([betterRepr(v) + ",\n" for v in o]) + "])"
+        return "deque([\n" + "".join([better_repr(v) + ",\n" for v in o]) + "])"
     if isinstance(o, Queue):
-        return "loadQueue([\n" + "".join([betterRepr(v) + ",\n" for v in list(o.queue)]) + "])"
+        return "loadQueue([\n" + "".join([better_repr(v) + ",\n" for v in list(o.queue)]) + "])"
     if isinstance(o, tuple):
-        return "(" + ", ".join(map(betterRepr, o)) + ")"
+        return "(" + ", ".join(map(better_repr, o)) + ")"
     if isinstance(o, dict):
-        return "{\n" + "".join([betterRepr(k) + ": " + betterRepr(v) + ",\n" for (k,v) in sorted(o.items())]) + "}"
+        return "{\n" + "".join([better_repr(k) + ": " + better_repr(v) + ",\n" for (k, v) in sorted(o.items())]) + "}"
     if isinstance(o, set):
-        return "set([\n" + "".join([betterRepr(v) + ",\n" for v in sorted(o)]) + "])"
+        return "set([\n" + "".join([better_repr(v) + ",\n" for v in sorted(o)]) + "])"
     # fallback
     return repr(o)
