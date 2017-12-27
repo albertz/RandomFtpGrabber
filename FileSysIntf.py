@@ -156,7 +156,7 @@ def http_list_dir(url):
     r = http.request('GET', url)
     if r.status != 200:
         raise OtherException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
-    bs = bs4.BeautifulSoup(r.data)  # Parse.
+    bs = bs4.BeautifulSoup(r.data, "html5lib")  # Parse.
 
     # This is just a good heuristic.
     dirs = []
