@@ -122,6 +122,8 @@ def setup(*raw_arg_list):
 
     if sys.version_info.major != 3:
         Logging.log("Warning: This code was only tested with Python3.")
+        import time
+        time.sleep(10)  # wait a bit to make sure the user sees this
 
     start_stdin_handler_loop()
 
@@ -133,7 +135,7 @@ def setup(*raw_arg_list):
     if not main.DownloadOnly:
         setup_lists()
 
-    import TaskSystem # important to be initially imported in the main thread
+    import TaskSystem  # important to be initially imported in the main thread
     if Args.numWorkers:
         TaskSystem.kNumWorkers = Args.numWorkers
         TaskSystem.kMinQueuedActions = Args.numWorkers
