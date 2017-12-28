@@ -11,6 +11,7 @@ from typing import List
 RootDir = "."
 Sources = []  # type: List[str]
 Blacklist = []
+FileWhitelist = []
 DownloadOnly = False
 Args = None
 reloadHandlers = []
@@ -89,12 +90,20 @@ def start_stdin_handler_loop():
 
 
 def setup_lists():
+    import Logging
     main.Sources = [l for l in open(RootDir + "/sources.txt").read().splitlines() if l and not l.startswith("#")]
     if os.path.exists(RootDir + "/blacklist.txt"):
         blacklist = open(RootDir + "/blacklist.txt").read().splitlines()
         main.Blacklist = [re.compile(bad_pattern) for bad_pattern in blacklist]
     else:
         main.Blacklist = []
+    Logging.log("blacklist:", main.Blacklist)
+    if os.path.exists(RootDir + "/file_whitelist.txt"):
+        file_whitelist = open(RootDir + "/file_whitelist.txt").read().splitlines()
+        main.FileWhitelist = [re.compile(pattern) for pattern in file_whitelist]
+    else:
+        main.FileWhitelist = []
+    Logging.log("file whitelist:", main.FileWhitelist)
 
 
 def allowed_by_blacklist(entry):
@@ -104,6 +113,17 @@ def allowed_by_blacklist(entry):
     """
     for bad_pattern_re in main.Blacklist:
         if bad_pattern_re.match(entry):
+            return False
+    return True
+
+
+def allowed_by_file_whitelist(entry):
+    """
+    :param str entry: URL of a file
+    :rtype: bool
+    """
+    for pattern_re in main.FileWhitelist:
+        if not pattern_re.match(entry):
             return False
     return True
 

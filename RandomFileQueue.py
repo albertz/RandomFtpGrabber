@@ -174,6 +174,7 @@ class RandomFileQueue:
         ls = self.fs.list_dir(base)
         import main
         ls = [entry for entry in ls if main.allowed_by_blacklist(entry.url)]
+        ls = [entry for entry in ls if not self.fs.is_file(entry) or main.allowed_by_file_whitelist(entry.url)]
         return ls
 
     def get_next_file(self):
