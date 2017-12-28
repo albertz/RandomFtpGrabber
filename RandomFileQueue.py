@@ -27,8 +27,6 @@ class RandomFileQueue:
         root_dir = root_dir.remove_trailing_slash()
         self.root_dir = root_dir
         self.fs = filesystem
-        import main
-        self.filterBlacklist = lambda l: filter(lambda entry: main.allowed_by_blacklist(entry.url), l)
 
         class Dir:
             owner = self
@@ -56,8 +54,7 @@ class RandomFileQueue:
                         return
                     self._start_loading()
                 try:
-                    listed_dir = self.owner.fs.list_dir(self.base)
-                    listed_dir = self.owner.filterBlacklist(listed_dir)  # type: List[Union[Index.Dir,Index.File]]
+                    listed_dir = self.owner._list_dir(self.base)
                 except self.owner.fs.TemporaryException as exc:
                     # try again another time
                     self.isLoading = False
@@ -141,6 +138,16 @@ class RandomFileQueue:
 
         self.root = Dir()
         self.root.base = root_dir
+
+    def _list_dir(self, base):
+        """
+        :param Index.Dir base:
+        :rtype: list[Index.Dir|Index.File]
+        """
+        ls = self.fs.list_dir(base)
+        import main
+        ls = [entry for entry in ls if main.allowed_by_blacklist(entry.url)]
+        return ls
 
     def get_next_file(self):
         """

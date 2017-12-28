@@ -98,6 +98,10 @@ def setup_lists():
 
 
 def allowed_by_blacklist(entry):
+    """
+    :param str entry:
+    :rtype: bool
+    """
     for bad_pattern_re in main.Blacklist:
         if bad_pattern_re.match(entry):
             return False

@@ -26,7 +26,7 @@ class TemporaryException(Exception):
 
 def list_dir(url):
     """
-    :type url: str
+    :param str url:
     :returns: tuple of lists: (dirs, files). both are absolute urls
     :rtype: (list[str],list[str])
     """
@@ -60,6 +60,11 @@ def list_dir(url):
 
 
 def ftp_list_dir(url):
+    """
+    :param str url:
+    :returns: tuple of lists: (dirs, files). both are absolute urls
+    :rtype: (list[str],list[str])
+    """
     o = urlparse(url)
     ftp = ftplib.FTP()
 
@@ -100,6 +105,12 @@ def ftp_list_dir(url):
 # thanks https://github.com/laserson/ftptree/blob/master/crawltree.py
 
 def _ftp_list_dir_unix(url, lines):
+    """
+    :param str url:
+    :param list[str] lines:
+    :returns: tuple of lists: (dirs, files). both are absolute urls
+    :rtype: (list[str],list[str])
+    """
     dirs, files = [], []
 
     for line in lines:
@@ -122,10 +133,17 @@ def _ftp_list_dir_unix(url, lines):
 
 
 def _ftp_list_dir_windows(url, lines):
+    """
+    :param str url:
+    :param list[str] lines:
+    :returns: tuple of lists: (dirs, files). both are absolute urls
+    :rtype: (list[str],list[str])
+    """
     dirs, files = [], []
 
     for line in lines:
-        if not line: continue
+        if not line:
+            continue
         fields = line.split()
         if len(fields) < 4:
             raise ValueError("Windows listing, unexpected line, too few fields: %r" % line)
@@ -141,7 +159,8 @@ def _ftp_list_dir_windows(url, lines):
 
 def _get_base_url(url):
     """
-    :type url: str
+    :param str url:
+    :rtype: str
     """
     if url.endswith('/'):
         return url
@@ -152,6 +171,11 @@ def _get_base_url(url):
 
 
 def http_list_dir(url):
+    """
+    :param str url:
+    :returns: tuple of lists: (dirs, files). both are absolute urls
+    :rtype: (list[str],list[str])
+    """
     base_url = _get_base_url(url)
     r = http.request('GET', url)
     if r.status != 200:
