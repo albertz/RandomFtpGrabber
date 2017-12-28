@@ -22,7 +22,7 @@ def is_python_repr_format(filename):
     return False
 
 
-def load_python_repr_format(filename, env=None, defaultConstructor=None):
+def load_python_repr_format(filename, env=None, default_constructor=None):
     code = open(filename, "r").read()
     if not env:
         env = {}
@@ -31,10 +31,10 @@ def load_python_repr_format(filename, env=None, defaultConstructor=None):
     else:
         env = dict(env)
     env["loadQueue"] = load_queue
-    if hasattr(defaultConstructor, "__module__"):
-        env.update(vars(sys.modules[defaultConstructor.__module__]))
-    elif hasattr(defaultConstructor, "__name__"):
-        env[defaultConstructor.__name__] = defaultConstructor
+    if hasattr(default_constructor, "__module__"):
+        env.update(vars(sys.modules[default_constructor.__module__]))
+    elif hasattr(default_constructor, "__name__"):
+        env[default_constructor.__name__] = default_constructor
     return eval(code, env)
 
 

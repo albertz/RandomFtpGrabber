@@ -5,10 +5,11 @@ from argparse import ArgumentParser
 import os
 import termios
 import re
+from typing import List
 
 
 RootDir = "."
-Sources = []
+Sources = []  # type: List[str]
 Blacklist = []
 DownloadOnly = False
 Args = None
@@ -17,6 +18,7 @@ reloadHandlers = []
 
 def print_stdin_help():
     print("Console control:")
+    print("  <h>:  print this help")
     print("  <r>:  reload lists (sources, blacklist)")
     print("  <d>:  debug: show all threads")
     print("  <q>:  quit")
@@ -70,6 +72,8 @@ def stdin_handler_loop():
         elif ch == b"d":
             import better_exchook
             better_exchook.dump_all_thread_tracebacks()
+        elif ch == b"h" or ch == b"\n":
+            print_stdin_help()
         else:
             print("Unknown key command: %r" % ch)
             print_stdin_help()
@@ -108,13 +112,13 @@ def setup(*raw_arg_list):
     import Logging
     better_exchook.output = Logging.log
 
-    argParser = ArgumentParser()
-    argParser.add_argument("--dir", default=os.getcwd())
-    argParser.add_argument("--numWorkers", type=int)
-    argParser.add_argument("--shell", action="store_true")
-    argParser.add_argument("--downloadRemaining", action="store_true")
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument("--dir", default=os.getcwd())
+    arg_parser.add_argument("--numWorkers", type=int)
+    arg_parser.add_argument("--shell", action="store_true")
+    arg_parser.add_argument("--downloadRemaining", action="store_true")
     global Args
-    Args = argParser.parse_args(raw_arg_list)
+    Args = arg_parser.parse_args(raw_arg_list)
 
     if sys.version_info.major != 3:
         Logging.log("Warning: This code was only tested with Python3.")
@@ -132,6 +136,8 @@ def setup(*raw_arg_list):
     import TaskSystem # important to be initially imported in the main thread
     if Args.numWorkers:
         TaskSystem.kNumWorkers = Args.numWorkers
+        TaskSystem.kMinQueuedActions = Args.numWorkers
+        TaskSystem.kSuggestedMaxQueuedActions = Args.numWorkers * 2
     if Args.shell:
         TaskSystem.kNumWorkers = 0
     TaskSystem.setup()
@@ -150,10 +156,8 @@ def main_entry():
 import main
 
 
-if __name__ == "main":
-    setup(*sys.argv[1:])
-
-elif __name__ == "__main__":
+if __name__ == "__main__":
+    main.setup(*sys.argv[1:])
     if main.Args.shell:
         import better_exchook
         better_exchook.debug_shell(globals(), globals())

@@ -84,8 +84,17 @@ class RandomNextFile(BaseAction):
     which will lazily build up the file index and explore all the directories,
     and add some random file to the download queue.
     """
-    def __init__(self):
-        self.base = Index.index.get_random_source()
+    def __init__(self, base=None, url=None):
+        """
+        :param None|Index.Dir base:
+        :param None|str url:
+        """
+        if url:
+            assert not base
+            base = Index.Dir(url=url)
+        if not base:
+            base = Index.index.get_random_source()  # type: Index.Dir
+        self.base = base
 
     def __call__(self):
         walker = get_random_walker(self.base)
@@ -95,11 +104,16 @@ class RandomNextFile(BaseAction):
         except FileSysIntf.TemporaryException as exc:
             # Handle another one later.
             # Will automatically be added.
-            print("RandomNextFile: TemporaryException:", exc)
+            Logging.log("RandomNextFile: TemporaryException:", exc)
             return
         if not url:
-            print("RandomNextFile: no file found")
-            return  # Can happen if it is empty.
+            # Can happen if we end up in an empty source or directory.
+            Logging.log("RandomNextFile: no file found")
+            return
+        if TaskSystem.reached_suggested_max_queue():
+            # Better go exploring a bit more, and handle the current queue first.
+            Logging.log("RandomNextFile: reached suggested max queue, will not queue download")
+            return
         TaskSystem.queue_work(Download(url))
 
     def __hash__(self):
@@ -117,6 +131,7 @@ class RandomNextFile(BaseAction):
 
     def __repr__(self):
         # Doesn't matter which base, just take another random next time.
+        # This repr will be used for the persistence storage.
         return "RandomNextFile()"
 
     def __str__(self):
@@ -136,7 +151,7 @@ class CheckDownloadsFinished(BaseAction):
         import TaskSystem
         import Threading
         # Check if there are no more downloads running.
-        if TaskSystem.currentWork.size() <= 1: # should only be ourself
+        if len(TaskSystem.currentWork) <= 1:  # should only be ourselves
             # Exit.
             Logging.log("All downloads finished.")
             Threading.do_in_main_thread(IssueSystemExit(), wait=False)
@@ -151,6 +166,6 @@ class IssueSystemExit(BaseAction):
         raise SystemExit
 
 
-def getNewAction():
+def get_new_action():
     return RandomNextFile()
 

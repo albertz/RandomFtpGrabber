@@ -26,6 +26,9 @@ class Filesystem:
 
 class FileBase:
     def __init__(self, url):
+        """
+        :param str url:
+        """
         self.url = url
 
     def __str__(self):
@@ -39,6 +42,10 @@ class File(FileBase):
 
 class Dir(FileBase):
     def __init__(self, url, children=None):
+        """
+        :param str url:
+        :param None|list[Dir|File] children:
+        """
         super().__init__(url)
         self.children = children
         self.lastException = None
@@ -65,6 +72,7 @@ class Dir(FileBase):
         self.children = \
             list(map(Dir, dirs)) + \
             list(map(File, files))
+        # noinspection PyUnresolvedReferences
         index.save()
 
         # By raising TemporaryException here, it will have the effect that we will try again later.
@@ -80,9 +88,9 @@ class Dir(FileBase):
 class Index:
     def __init__(self, sources=None):
         """
-        :param Dict[str,Dir] sources:
+        :param None|dict[str,Dir] sources:
         """
-        self.sources = sources or {}
+        self.sources = sources or {}  # type: Dict[str,Dir]
         self._load_sources()
         import main
         main.reloadHandlers += [self._load_sources]
@@ -92,7 +100,7 @@ class Index:
         for source in main.Sources:
             if source not in self.sources:
                 self.sources[source] = Dir(url=source)
-        for source in self.sources:
+        for source in list(self.sources.keys()):
             if source not in main.Sources:
                 del self.sources[source]
 
@@ -103,6 +111,10 @@ class Index:
         return random.choice(list(self.sources.values()))
 
     def get_source(self, source):
+        """
+        :param str source:
+        :rtype: Dir
+        """
         return self.sources[source]
 
     def __repr__(self):

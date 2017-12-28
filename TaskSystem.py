@@ -9,6 +9,7 @@ import Logging
 
 kNumWorkers = 5
 kMinQueuedActions = kNumWorkers  # fill workerQueue always up to N elements, via the watcher thread
+kSuggestedMaxQueuedActions = kNumWorkers * 2
 
 
 # Reloads should work.
@@ -36,6 +37,9 @@ def setup():
 
 
 def queue_work(func):
+    """
+    :param Action.BaseAction func:
+    """
     if currentWork in currentWork:
         Logging.log("queueWork: already in queue: %r" % func)
         return  # just ignore
@@ -47,7 +51,14 @@ def queue_work(func):
     workerQueue.save()
 
 
+def reached_suggested_max_queue():
+    return len(currentWork) >= kSuggestedMaxQueuedActions
+
+
 def main_loop():
+    """
+    We assume this runs in the main-thread.
+    """
     while True:
         func = mainLoopQueue.get()
         func()
@@ -93,7 +104,7 @@ def watcher_loop():
             exitEvent.wait(1)
             continue
 
-        func = Action.getNewAction()
+        func = Action.get_new_action()
         workerQueue.put(func)
 
 
@@ -106,18 +117,18 @@ if "watcher" not in vars():
 def _init_worker_threads():
     if len(workers) >= kNumWorkers:
         return
-    assert not workers # needs fixing otherwise
+    assert not workers  # needs fixing otherwise
     # Build up set of actions in the queue.
-    currentWorkReal = set()
+    current_work_real = set()
     for func in list(workerQueue.queue):
-        currentWorkReal.add(func)
+        current_work_real.add(func)
     # Add all missing actions.
     # Those are actions which have been run when we quit last time.
-    missingWork = currentWork - currentWorkReal
-    for func in missingWork:
+    missing_work = currentWork - current_work_real
+    for func in missing_work:
         workerQueue.put(func)
     # Fixup current work set.
-    currentWork.update(currentWorkReal)
+    currentWork.update(current_work_real)
     # Now init the threads.
     for i in range(kNumWorkers - len(workers)):
         thread = Thread(target=worker_loop, name="Worker %i/%i" % (i + 1, kNumWorkers))
@@ -128,7 +139,8 @@ def _init_worker_threads():
 
 def _init_watcher_thread():
     global watcher
-    if watcher: return
+    if watcher:
+        return
     watcher = Thread(target=watcher_loop, name="Watcher")
     watcher.daemon = True
     watcher.start()

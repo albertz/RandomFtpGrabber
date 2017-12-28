@@ -28,6 +28,12 @@ class Saver:
 
 
 def load(filename, default_constructor, env=None):
+    """
+    :param str filename:
+    :param (()->T)|T default_constructor:
+    :param None|dict[str] env: locals for evaluating the persistence expressions
+    :rtype: T
+    """
     from PickleHelpers import is_pickle_format
     from PyReprHelpers import is_python_repr_format, load_python_repr_format
     import PickleHelpers
@@ -43,7 +49,7 @@ def load(filename, default_constructor, env=None):
             Logging.log("Persistence.load %s" % filename)
             if is_python_repr_format(filename):
                 try:
-                    obj = load_python_repr_format(filename, defaultConstructor=default_constructor, env=env)
+                    obj = load_python_repr_format(filename, default_constructor=default_constructor, env=env)
                 except Exception:
                     sys.excepthook(*sys.exc_info())
                     sys.exit(1)
