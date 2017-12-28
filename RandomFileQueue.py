@@ -8,6 +8,9 @@
 import random
 import sys
 from threading import RLock
+from typing import List, Union
+import Index
+
 
 kNonloadedDirsExpectedFac = 0.5
 kNonloadedDirsExpectedMin = 100
@@ -30,12 +33,12 @@ class RandomFileQueue:
             owner = self
             isLoaded = False
             isLoading = False
-            base = None
+            base = None  # type: Index.Dir
 
             def __init__(self):
-                self.files = []
-                self.loadedDirs = []
-                self.nonloadedDirs = []
+                self.files = []  # type: List[Index.File]
+                self.loadedDirs = []  # type: List[Dir]
+                self.nonloadedDirs = []  # type: List[Dir]
                 self.lock = RLock()
 
             def _start_loading(self):
@@ -53,7 +56,7 @@ class RandomFileQueue:
                     self._start_loading()
                 try:
                     listed_dir = self.owner.fs.list_dir(self.base)
-                    listed_dir = self.owner.filterBlacklist(listed_dir)
+                    listed_dir = self.owner.filterBlacklist(listed_dir)  # type: List[Union[Index.Dir,Index.File]]
                 except self.owner.fs.TemporaryException as exc:
                     # try again another time
                     self.isLoading = False
@@ -65,21 +68,24 @@ class RandomFileQueue:
                     # are handled in listDir(), which probably returns also [] then.
                     listed_dir = []
                 files = []
-                nonloadedDirs = []
+                nonloaded_dirs = []
                 for f in listed_dir:
                     if self.owner.fs.is_file(f):
                         files += [f]
                     elif self.owner.fs.is_dir(f):
                         subdir = Dir()
                         subdir.base = f
-                        nonloadedDirs += [subdir]
+                        nonloaded_dirs += [subdir]
                 with self.lock:
                     self.files = files
-                    self.nonloadedDirs = nonloadedDirs
+                    self.nonloadedDirs = nonloaded_dirs
                     self.isLoaded = True
                     self.isLoading = False
 
             def expected_files_count(self):
+                """
+                :rtype: int
+                """
                 c = 0
                 c += len(self.files)
                 for d in self.loadedDirs:
@@ -89,6 +95,9 @@ class RandomFileQueue:
                 return c
 
             def random_get(self):
+                """
+                :rtype: Index.File|None
+                """
                 self.load()
                 assert self.isLoaded
 
@@ -133,4 +142,7 @@ class RandomFileQueue:
         self.root.base = root_dir
 
     def get_next_file(self):
+        """
+        :rtype: Index.File|None
+        """
         return self.root.random_get()

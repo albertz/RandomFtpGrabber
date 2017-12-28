@@ -10,12 +10,24 @@ from typing import Dict
 # Interface for RandomFileQueue
 class Filesystem:
     def list_dir(self, path):
+        """
+        :param Dir path:
+        :rtype: list[Dir|File]
+        """
         return path.list_dir()
 
     def is_file(self, path):
+        """
+        :param Dir|File path:
+        :rtype: bool
+        """
         return isinstance(path, File)
 
     def is_dir(self, path):
+        """
+        :param Dir|File path:
+        :rtype: bool
+        """
         return isinstance(path, Dir)
 
     def handle_exception(self, exctype, value, traceback):
@@ -52,6 +64,9 @@ class Dir(FileBase):
 
     @synced_on_obj
     def list_dir(self):
+        """
+        :rtype: list[Dir|File]
+        """
         if self.children is not None:
             return self.children
 
