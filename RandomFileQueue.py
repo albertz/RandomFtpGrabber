@@ -91,12 +91,18 @@ class RandomFileQueue:
                 with self.lock:
                     if self.nonloadedDirs:
                         return
-                    for d in self.loadedDirs:
+                    for d in list(self.loadedDirs):
+                        assert isinstance(d, Dir)
                         if d.files_count is None:
                             return
+                        if not d.files_count:
+                            # Remove empty directories.
+                            self.loadedDirs.remove(d)
+                            continue
                         c += d.files_count
                     self.files_count = c
                 if self.parent:
+                    assert isinstance(self.parent, Dir)
                     self.parent._check_static_files_count()
 
             def expected_files_count(self):
