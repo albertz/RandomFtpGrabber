@@ -99,7 +99,7 @@ def setup_lists():
 
 def allowed_by_blacklist(entry):
     """
-    :param str entry:
+    :param str entry: URL of either a directory or file
     :rtype: bool
     """
     for bad_pattern_re in main.Blacklist:

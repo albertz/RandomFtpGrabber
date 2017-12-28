@@ -8,7 +8,7 @@
 import random
 import sys
 from threading import RLock
-from typing import List, Union
+from typing import List, Union, Optional
 import Index
 
 
@@ -34,7 +34,12 @@ class RandomFileQueue:
             isLoading = False
             base = None  # type: Index.Dir
 
-            def __init__(self):
+            def __init__(self, parent=None):
+                """
+                :param Dir|None parent:
+                """
+                self.parent = parent
+                self.files_count = None  # type: Optional[int]
                 self.files = []  # type: List[Index.File]
                 self.loadedDirs = []  # type: List[Dir]
                 self.nonloadedDirs = []  # type: List[Dir]
@@ -71,7 +76,7 @@ class RandomFileQueue:
                     if self.owner.fs.is_file(f):
                         files += [f]
                     elif self.owner.fs.is_dir(f):
-                        subdir = Dir()
+                        subdir = Dir(parent=self)
                         subdir.base = f
                         nonloaded_dirs += [subdir]
                 with self.lock:
@@ -79,11 +84,27 @@ class RandomFileQueue:
                     self.nonloadedDirs = nonloaded_dirs
                     self.isLoaded = True
                     self.isLoading = False
+                self._check_static_files_count()
+
+            def _check_static_files_count(self):
+                c = len(self.files)
+                with self.lock:
+                    if self.nonloadedDirs:
+                        return
+                    for d in self.loadedDirs:
+                        if d.files_count is None:
+                            return
+                        c += d.files_count
+                    self.files_count = c
+                if self.parent:
+                    self.parent._check_static_files_count()
 
             def expected_files_count(self):
                 """
                 :rtype: int
                 """
+                if self.files_count is not None:
+                    return self.files_count
                 c = 0
                 c += len(self.files)
                 for d in self.loadedDirs:
