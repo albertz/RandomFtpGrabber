@@ -49,6 +49,7 @@ def download(url):
 
     args = ["wget",
             "--continue",
+            "--no-check-certificate",  # SSL errors ignored, like in list-dir
             "--force-directories",
             "--directory-prefix", "downloads/",
             "--progress=dot:mega", # see also the progress handling below
