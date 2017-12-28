@@ -24,6 +24,7 @@ class RandomFileQueue:
         :param Index.Dir root_dir:
         :param Index.Filesystem filesystem:
         """
+        root_dir = root_dir.remove_trailing_slash()
         self.root_dir = root_dir
         self.fs = filesystem
         import main
