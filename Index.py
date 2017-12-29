@@ -80,7 +80,7 @@ class Dir(FileBase):
         Logging.log("listDir: %s" % self.url)
 
         try:
-            dirs, files = FileSysIntf.list_dir(self.url.rstrip("/"))
+            dirs, files = FileSysIntf.list_dir(self.url)
         except FileSysIntf.TemporaryException as e:
             # Reraise so that the outer caller gets noticed that it can retry later.
             raise

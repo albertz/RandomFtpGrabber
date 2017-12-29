@@ -94,11 +94,13 @@ def ftp_list_dir(url):
 
         ftp.login(**kwargs)
         path = o.path
-        if path[:1] != "/": path = "/" + path # add leading slash
-        while path[1:2] == "/": # remove leading double slashes
+        if path[:1] != "/":
+            path = "/" + path  # add leading slash
+        while path[1:2] == "/":  # remove leading double slashes
             path = path[1:]
         path = os.path.normpath(path)
-        if len(path) > 1 and path[-1:] == "/": path = path[:-1] # remove trailing slash
+        if len(path) > 1 and path[-1:] == "/":
+            path = path[:-1]  # remove trailing slash
         ftp.cwd(path)
         cur_pwd = ftp.pwd()
         if cur_pwd != path:
@@ -106,7 +108,8 @@ def ftp_list_dir(url):
 
         lines = []
         ftp.dir(o.path, lines.append)
-        if not lines: return [], []
+        if not lines:
+            return [], []
 
         if "<DIR>" in lines[0] or lines[0][:1] not in "d-l":
             return _ftp_list_dir_windows(url, lines)
@@ -140,7 +143,7 @@ def _ftp_list_dir_unix(url, lines):
             continue
         else:
             raise ValueError("Unix listing, unexpected line, type: %r" % line)
-        container.append(url + "/" + name)
+        container.append(url.rstrip("/") + "/" + name)
 
     return dirs, files
 
@@ -165,14 +168,15 @@ def _ftp_list_dir_windows(url, lines):
             container = dirs
         else:
             container = files
-        container.append(url + "/" + name)
+        container.append(url.rstrip("/") + "/" + name)
 
     return dirs, files
 
 
 def _get_base_url(url):
     """
-    :param str url:
+    :param str url: e.g. "http://localhost/some_dir/index.html"
+    :return: e.g. "http://localhost/some_dir/"
     :rtype: str
     """
     if url.endswith('/'):
@@ -189,12 +193,15 @@ def http_list_dir(url):
     :returns: tuple of lists: (dirs, files). both are absolute urls
     :rtype: (list[str],list[str])
     """
-    base_url = _get_base_url(url)
     r = http.request('GET', url)
     if r.status != 200:
         if r.status == 404:
             raise NotFoundException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
         raise OtherException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
+    for req in r.retries.history:
+        if req.redirect_location:
+            url = req.redirect_location
+    base_url = _get_base_url(url)
     bs = bs4.BeautifulSoup(r.data, "html5lib")  # Parse.
 
     # This is just a good heuristic.
@@ -213,8 +220,8 @@ def http_list_dir(url):
             continue
         # Ending with '/' is probably a dir.
         if sub_url.endswith('/'):
-            dirs += [base_url + sub_url]
+            dirs += [base_url.rstrip("/") + "/" + sub_url]
         else:
-            files += [base_url + sub_url]
+            files += [base_url.rstrip("/") + "/" + sub_url]
 
     return dirs, files
