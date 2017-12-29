@@ -35,6 +35,7 @@ class Filesystem:
         Logging.log_exception("Filesystem", exctype, value, traceback)
 
     TemporaryException = FileSysIntf.TemporaryException
+    NotFoundException = FileSysIntf.NotFoundException
 
 
 class FileBase:

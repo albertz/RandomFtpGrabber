@@ -27,6 +27,9 @@ class RandomFileQueue:
         self.root_dir = root_dir
         self.fs = filesystem
 
+        class NonLoadedException(Exception):
+            pass
+
         class Dir:
             owner = self
             isLoaded = False
@@ -86,6 +89,11 @@ class RandomFileQueue:
                     self.nonloadedDirs = nonloaded_dirs
                     self.isLoaded = True
                     self.isLoading = False
+                if not listed_dir and isinstance(self.base.lastException, filesystem.NotFoundException) and self.parent:
+                    # Invalidate parent.
+                    assert isinstance(self.parent, Dir)
+                    self.parent.unload()
+                    raise self.owner.fs.TemporaryException("Dir removed, reload parent next time: %r" % self.parent)
                 self._check_static_files_count()
 
             def _check_static_files_count(self):
@@ -107,20 +115,36 @@ class RandomFileQueue:
                     assert isinstance(self.parent, Dir)
                     self.parent._check_static_files_count()
 
+            def unload(self):
+                with self.lock:
+                    if not self.isLoaded:
+                        return
+                    self.isLoaded = False
+                    self.files_count = None
+                    self.files = []
+                    self.loadedDirs = []
+                    self.nonloadedDirs = []
+
             def expected_files_count(self):
                 """
                 :rtype: int
                 """
                 c = 0
+                loaded_dirs = None
+                len_nonloaded_dirs = None
                 with self.lock:
                     if self.files_count is not None:
                         return self.files_count
-                    assert self.isLoaded
+                    if not self.isLoaded:
+                        raise NonLoadedException()
                     c += len(self.files)
                     loaded_dirs = list(self.loadedDirs)
                     len_nonloaded_dirs = len(self.nonloadedDirs)
                 for d in loaded_dirs:
-                    c += d.expected_files_count()
+                    try:
+                        c += d.expected_files_count()
+                    except NonLoadedException:
+                        c += max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
                 c += len_nonloaded_dirs * \
                      max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
                 return c
@@ -129,20 +153,23 @@ class RandomFileQueue:
                 """
                 :rtype: Index.File|None
                 """
-                self.load()
-                assert self.isLoaded
-
                 while True:
+                    # Load if not loaded.
+                    # Do this inside the loop because there is some logic which could unload ourselves.
+                    self.load()
+
                     rmax = self.expected_files_count()
                     if rmax == 0:
                         return None
                     r = rndInt(0, rmax - 1)
 
-                    if r < len(self.files):
-                        return self.files[r]
-                    r -= len(self.files)
+                    with self.lock:
+                        if r < len(self.files):
+                            return self.files[r]
+                        r -= len(self.files)
+                        loaded_dirs = list(self.loadedDirs)
 
-                    for d in self.loadedDirs:
+                    for d in loaded_dirs:
                         c = d.expected_files_count()
                         if r < c:
                             f = d.random_get()
@@ -161,6 +188,7 @@ class RandomFileQueue:
                             continue
                         r = rndInt(0, len(self.nonloadedDirs) - 1)
                         d = self.nonloadedDirs[r]
+                        assert isinstance(d, Dir)
 
                     # Don't do in locked state to not hold the lock for too long.
                     d.load()
