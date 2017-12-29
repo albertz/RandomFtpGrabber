@@ -1,7 +1,7 @@
 
 import sys
 from queue import Queue
-from threading import Event, Thread
+from threading import Event, Thread, Lock
 import better_exchook
 import Persistence
 import Logging
@@ -64,30 +64,6 @@ def main_loop():
         func()
 
 
-def worker_loop():
-    better_exchook.install()
-    while True:
-        func = workerQueue.get()
-        Logging.log("Next work item: %s" % func, "remaining: %i" % workerQueue.qsize())
-        try:
-            func()
-        except SystemExit:
-            return
-        except Exception:
-            Logging.log_exception("Worker", *sys.exc_info())
-        finally:
-            # Note, this is buggy:
-            # In case that func() adds itself back to the work-queue,
-            # we would remove it here and then sometime later when we
-            # execute it again, it's not in the set anymore.
-            # Note that some other code also does not expect this.
-            # TODO fix this
-            if func in currentWork:
-                currentWork.remove(func)
-                # noinspection PyUnresolvedReferences
-                currentWork.save()
-
-
 def watcher_loop():
     import main
     import Action
@@ -114,6 +90,44 @@ if "watcher" not in vars():
     watcher = None
 
 
+class WorkerThread(Thread):
+    def __init__(self, idx):
+        super(WorkerThread, self).__init__(name="Worker %i/%i" % (idx + 1, kNumWorkers))
+        self.idx = idx
+        self.daemon = True
+        self.cur_item = None
+        self.lock = Lock()
+
+    def run(self):
+        better_exchook.install()
+        while True:
+            func = workerQueue.get()
+            Logging.log("Next work item: %s" % func, "remaining: %i" % workerQueue.qsize())
+            with self.lock:
+                self.cur_item = func
+            try:
+                func()
+            except SystemExit:
+                return
+            except Exception:
+                Logging.log_exception("Worker", *sys.exc_info())
+            finally:
+                # Note, this is buggy:
+                # In case that func() adds itself back to the work-queue,
+                # we would remove it here and then sometime later when we
+                # execute it again, it's not in the set anymore.
+                # Note that some other code also does not expect this.
+                # TODO fix this
+                if func in currentWork:
+                    currentWork.remove(func)
+                    # noinspection PyUnresolvedReferences
+                    currentWork.save()
+
+    def __str__(self):
+        with self.lock:
+            return "%s, %s" % (self.name, self.cur_item)
+
+
 def _init_worker_threads():
     if len(workers) >= kNumWorkers:
         return
@@ -131,9 +145,8 @@ def _init_worker_threads():
     currentWork.update(current_work_real)
     # Now init the threads.
     for i in range(kNumWorkers - len(workers)):
-        thread = Thread(target=worker_loop, name="Worker %i/%i" % (i + 1, kNumWorkers))
+        thread = WorkerThread(idx=i)
         workers.append(thread)
-        thread.daemon = True
         thread.start()
 
 

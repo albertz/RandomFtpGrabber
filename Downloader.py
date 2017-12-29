@@ -68,10 +68,13 @@ class Downloader:
     def __repr__(self):
         return "Downloader(%r)" % self.url
 
-    def __str__(self):
+    def describe_state(self):
         if not self.last_output_time:
-            return "%r, not started"
-        return "%r, last output %f secs ago" % (self, time.time() - self.last_output_time)
+            return "not started"
+        return "last output %f secs ago" % (time.time() - self.last_output_time,)
+
+    def __str__(self):
+        return "%r, %s" % (self, self.describe_state())
 
     def run(self):
         url = self.url
@@ -103,6 +106,7 @@ class Downloader:
         progress_line_idx = 0
         while p.returncode is None:
             line = p.stdout.readline()
+            self.last_output_time = time.time()
             line = convert_to_unicode(line)
             line = line.rstrip()
             if not line:

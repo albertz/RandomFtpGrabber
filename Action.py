@@ -79,6 +79,9 @@ class Download(BaseAction):
     def __repr__(self):
         return "Download(%r)" % str(self.url)
 
+    def __str__(self):
+        return "%r, %s" % (self, self.downloader.describe_state())
+
 
 class RandomNextFile(BaseAction):
     """

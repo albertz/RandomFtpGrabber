@@ -17,14 +17,6 @@ Args = None
 reloadHandlers = []
 
 
-def print_stdin_help():
-    print("Console control:")
-    print("  <h>:  print this help")
-    print("  <r>:  reload lists (sources, blacklist)")
-    print("  <d>:  debug: show all threads")
-    print("  <q>:  quit")
-
-
 def prepare_stdin():
     fd = sys.stdin.fileno()
 
@@ -54,6 +46,14 @@ def stdin_get_char():
     return ch
 
 
+def print_stdin_help():
+    print("Console control:")
+    print("  <h>:  print this help")
+    print("  <r>:  reload lists (sources, blacklist)")
+    print("  <d>:  debug: show all workers")
+    print("  <q>:  quit")
+
+
 def stdin_handler_loop():
     while True:
         ch = stdin_get_char()
@@ -71,8 +71,10 @@ def stdin_handler_loop():
             for handler in reloadHandlers:
                 handler()
         elif ch == b"d":
-            import better_exchook
-            better_exchook.dump_all_thread_tracebacks()
+            print("Workers:")
+            import TaskSystem
+            for worker in TaskSystem.workers:
+                print(" %s" % worker)
         elif ch == b"h" or ch == b"\n":
             print_stdin_help()
         else:
