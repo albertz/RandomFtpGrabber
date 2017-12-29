@@ -62,14 +62,6 @@ class Dir(FileBase):
         self.children = children
         self.lastException = None
 
-    def remove_trailing_slash(self):
-        """
-        :rtype: Dir
-        """
-        if self.url.endswith("/"):
-            return Dir(url=self.url.rstrip("/"))
-        return self
-
     @synced_on_obj
     def list_dir(self):
         """
@@ -81,7 +73,7 @@ class Dir(FileBase):
         Logging.log("listDir: %s" % self.url)
 
         try:
-            dirs, files = FileSysIntf.list_dir(self.url)
+            dirs, files = FileSysIntf.list_dir(self.url.rstrip("/"))
         except FileSysIntf.TemporaryException as e:
             Logging.log("ListDir temporary exception on %s:" % self.url, str(e) or type(e))
             # Reraise so that the outer caller gets noticed that it can retry later.

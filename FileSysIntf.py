@@ -10,6 +10,11 @@ http = urllib3.PoolManager()
 
 
 def urlparse(url):
+    """
+    :param str url:
+    :return: (scheme, netloc, path, params, query, fragment)
+    :rtype: urllib.parse.ParseResult
+    """
     return urllib_urlparse(url, allow_fragments=False)
 
 

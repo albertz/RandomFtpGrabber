@@ -107,7 +107,7 @@ class Downloader:
             line = line.rstrip()
             if not line:
                 pass  # Cleanup output a bit.
-            if _wget_is_progress_line(line):
+            elif _wget_is_progress_line(line):
                 if progress_line_idx % kWgetProgessLineMod == 0:
                     Logging.log("%s progress: %s" % (print_prefix, line))
                 progress_line_idx += 1
