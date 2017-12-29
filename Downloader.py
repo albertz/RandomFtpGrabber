@@ -64,7 +64,7 @@ def download(url):
         filename = filename[:kMaxFilenameLenPrint] + "..."
     filename = filename + ext
     print_prefix = "wget (%s)" % filename
-    print("%s: start download %s" % (print_prefix, url))
+    Logging.log("%s: start download %s" % (print_prefix, url))
 
     args = ["wget",
             "--continue",
@@ -74,7 +74,7 @@ def download(url):
             "--progress=dot:mega",  # see also the progress handling below
             "--tries=5",  # note that we also do our own retry-handling
             str(url)]
-    print(" ".join(map(repr, args)))
+    Logging.log(" ".join(map(repr, args)))
 
     from subprocess import Popen, PIPE, STDOUT
     env = os.environ.copy()
@@ -87,7 +87,8 @@ def download(url):
         line = p.stdout.readline()
         line = convert_to_unicode(line)
         line = line.rstrip()
-        if not line: continue # Cleanup output a bit.
+        if not line:
+            pass  # Cleanup output a bit.
         if _wget_is_progress_line(line):
             if progress_line_idx % kWgetProgessLineMod == 0:
                 Logging.log("%s progress: %s" % (print_prefix, line))
@@ -99,6 +100,9 @@ def download(url):
                 p.kill()
                 raise DownloadFatalError("error: " + line)
             if line.startswith("No such directory "):
+                p.kill()
+                raise DownloadFatalError("error: " + line)
+            if "404 Not Found" in line:
                 p.kill()
                 raise DownloadFatalError("error: " + line)
         p.poll()
