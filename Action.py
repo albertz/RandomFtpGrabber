@@ -106,15 +106,15 @@ class RandomNextFile(BaseAction):
         except FileSysIntf.TemporaryException as exc:
             # Handle another one later.
             # Will automatically be added.
-            Logging.log("RandomNextFile: TemporaryException:", exc)
+            Logging.log("%s: TemporaryException:" % self, exc)
             return
         if not url:
             # Can happen if we end up in an empty source or directory.
-            Logging.log("RandomNextFile: no file found")
+            Logging.log("%s: no file found" % self)
             return
         if TaskSystem.reached_suggested_max_queue():
             # Better go exploring a bit more, and handle the current queue first.
-            Logging.log("RandomNextFile: reached suggested max queue, will not queue download")
+            Logging.log("%s: reached suggested max queue, will not queue download" % self)
             return
         TaskSystem.queue_work(Download(url))
 
