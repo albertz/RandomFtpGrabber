@@ -38,11 +38,13 @@ class Filesystem:
 
 
 class FileBase:
-    def __init__(self, url):
+    def __init__(self, url, parent=None):
         """
         :param str url:
+        :param Dir parent:
         """
         self.url = url
+        self.parent = parent
 
     def __str__(self):
         return self.url
@@ -54,14 +56,17 @@ class File(FileBase):
 
 
 class Dir(FileBase):
-    def __init__(self, url, children=None):
+    def __init__(self, url, children=None, **kwargs):
         """
         :param str url:
         :param None|list[Dir|File] children:
         """
-        super().__init__(url)
+        super().__init__(url=url, **kwargs)
         self.children = children
         self.lastException = None
+        if children:
+            for child in children:
+                child.parent = self
 
     @synced_on_obj
     def list_dir(self):
@@ -82,11 +87,11 @@ class Dir(FileBase):
             Logging.log("ListDir unrecoverable exception on %s:" % self.url, str(e) or type(e))
             self.lastException = e
             self.children = []
+            if self.parent and isinstance(e, FileSysIntf.NotFoundException):
+                self.parent.children = None  # reset. seems invalid
             return []
 
-        self.children = \
-            list(map(Dir, dirs)) + \
-            list(map(File, files))
+        self.children = [Dir(url, parent=self) for url in dirs] + [File(url, parent=self) for url in files]
         # noinspection PyUnresolvedReferences
         index.save()
 

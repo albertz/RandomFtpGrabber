@@ -25,6 +25,10 @@ class OtherException(Exception):
     pass
 
 
+class NotFoundException(OtherException):
+    pass
+
+
 class TemporaryException(Exception):
     pass
 
@@ -73,8 +77,9 @@ def ftp_list_dir(url):
     o = urlparse(url)
     ftp = ftplib.FTP()
 
-    kwargs = { "host": o.hostname or o.netloc }
-    if o.port: kwargs["port"] = o.port
+    kwargs = {"host": o.hostname or o.netloc}
+    if o.port:
+        kwargs["port"] = o.port
     ftp.connect(**kwargs)
 
     if len(os.path.normpath(o.path).split("/")) > kMaxFtpDepth:
@@ -82,8 +87,10 @@ def ftp_list_dir(url):
 
     with ftp:
         kwargs = {}
-        if o.username: kwargs["user"] = o.username
-        if o.password: kwargs["passwd"] = o.password
+        if o.username:
+            kwargs["user"] = o.username
+        if o.password:
+            kwargs["passwd"] = o.password
 
         ftp.login(**kwargs)
         path = o.path
@@ -93,9 +100,9 @@ def ftp_list_dir(url):
         path = os.path.normpath(path)
         if len(path) > 1 and path[-1:] == "/": path = path[:-1] # remove trailing slash
         ftp.cwd(path)
-        curPwd = ftp.pwd()
-        if curPwd != path:
-            raise OtherException("path doesnt match: %r vs pwd %r" % (path, curPwd))
+        cur_pwd = ftp.pwd()
+        if cur_pwd != path:
+            raise OtherException("path doesnt match: %r vs pwd %r" % (path, cur_pwd))
 
         lines = []
         ftp.dir(o.path, lines.append)
@@ -119,7 +126,8 @@ def _ftp_list_dir_unix(url, lines):
     dirs, files = [], []
 
     for line in lines:
-        if not line: continue
+        if not line:
+            continue
         fields = line.split()
         if len(fields) < 9:
             raise ValueError("Unix listing, unexpected line, too few fields: %r" % line)
@@ -184,6 +192,8 @@ def http_list_dir(url):
     base_url = _get_base_url(url)
     r = http.request('GET', url)
     if r.status != 200:
+        if r.status == 404:
+            raise NotFoundException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
         raise OtherException("HTTP Return code %i, reason: %s" % (r.status, r.reason))
     bs = bs4.BeautifulSoup(r.data, "html5lib")  # Parse.
 
@@ -192,11 +202,15 @@ def http_list_dir(url):
     files = []
     for sub_url in [anchor['href'] for anchor in bs.findAll('a', href=True)]:
         # Take all relative paths only.
-        if ':' in sub_url: continue
-        if sub_url.startswith('/'): continue
-        if sub_url.startswith('.'): continue
+        if ':' in sub_url:
+            continue
+        if sub_url.startswith('/'):
+            continue
+        if sub_url.startswith('.'):
+            continue
         # Ignore any starting with '?' such as '?C=N;O=D'.
-        if sub_url.startswith('?'): continue
+        if sub_url.startswith('?'):
+            continue
         # Ending with '/' is probably a dir.
         if sub_url.endswith('/'):
             dirs += [base_url + sub_url]
