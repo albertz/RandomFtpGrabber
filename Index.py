@@ -2,6 +2,7 @@
 import Persistence
 import FileSysIntf
 from Threading import synced_on_obj
+from threading import Lock
 import random
 import Logging
 from typing import Dict
@@ -75,7 +76,6 @@ class Dir(FileBase):
         try:
             dirs, files = FileSysIntf.list_dir(self.url.rstrip("/"))
         except FileSysIntf.TemporaryException as e:
-            Logging.log("ListDir temporary exception on %s:" % self.url, str(e) or type(e))
             # Reraise so that the outer caller gets noticed that it can retry later.
             raise
         except Exception as e:
@@ -105,6 +105,7 @@ class Index:
         """
         :param None|dict[str,Dir] sources:
         """
+        self.lock = Lock()
         self.sources = sources or {}  # type: Dict[str,Dir]
         self._load_sources()
         import main
@@ -112,25 +113,39 @@ class Index:
 
     def _load_sources(self):
         import main
-        for source in main.Sources:
-            if source not in self.sources:
-                self.sources[source] = Dir(url=source)
-        for source in list(self.sources.keys()):
-            if source not in main.Sources:
-                del self.sources[source]
+        with self.lock:
+            for source in main.Sources:
+                if source not in self.sources:
+                    self.sources[source] = Dir(url=source)
+            for source in list(self.sources.keys()):
+                if source not in main.Sources:
+                    del self.sources[source]
 
     def get_random_source(self):
         """
         :rtype: Dir
         """
-        return random.choice(list(self.sources.values()))
+        with self.lock:
+            return random.choice(list(self.sources.values()))
 
     def get_source(self, source):
         """
         :param str source:
         :rtype: Dir
         """
-        return self.sources[source]
+        with self.lock:
+            return self.sources[source]
+
+    def remove_source(self, source):
+        """
+        :param Dir source:
+        """
+        with self.lock:
+            sources = {value: key for (key, value) in self.sources.items()}
+            if source in sources:
+                key = sources[source]
+                Logging.log("remove source %r" % key)
+                del self.sources[key]
 
     def __repr__(self):
         return "Index(%s)" % Persistence.better_repr(self.sources)

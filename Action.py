@@ -111,6 +111,7 @@ class RandomNextFile(BaseAction):
         if not url:
             # Can happen if we end up in an empty source or directory.
             Logging.log("%s: no file found" % self)
+            Index.index.remove_source(self.base)
             return
         if TaskSystem.reached_suggested_max_queue():
             # Better go exploring a bit more, and handle the current queue first.

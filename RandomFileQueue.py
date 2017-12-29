@@ -44,6 +44,9 @@ class RandomFileQueue:
                 self.nonloadedDirs = []  # type: List[Dir]
                 self.lock = RLock()
 
+            def __repr__(self):
+                return "Dir<base: %r>" % self.base.url
+
             def _start_loading(self):
                 with self.lock:
                     if self.isLoading:
@@ -86,14 +89,14 @@ class RandomFileQueue:
                 self._check_static_files_count()
 
             def _check_static_files_count(self):
-                c = len(self.files)
                 with self.lock:
+                    c = len(self.files)
                     if self.nonloadedDirs:
-                        return
+                        return  # we don't know about the real file count yet
                     for d in list(self.loadedDirs):
                         assert isinstance(d, Dir)
                         if d.files_count is None:
-                            return
+                            return  # we don't know about the real file count yet
                         if not d.files_count:
                             # Remove empty directories.
                             self.loadedDirs.remove(d)
@@ -108,14 +111,18 @@ class RandomFileQueue:
                 """
                 :rtype: int
                 """
-                if self.files_count is not None:
-                    return self.files_count
                 c = 0
-                c += len(self.files)
-                for d in self.loadedDirs:
+                with self.lock:
+                    if self.files_count is not None:
+                        return self.files_count
+                    assert self.isLoaded
+                    c += len(self.files)
+                    loaded_dirs = list(self.loadedDirs)
+                    len_nonloaded_dirs = len(self.nonloadedDirs)
+                for d in loaded_dirs:
                     c += d.expected_files_count()
-                c += len(self.nonloadedDirs) * \
-                    max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
+                c += len_nonloaded_dirs * \
+                     max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
                 return c
 
             def random_get(self):
@@ -180,4 +187,6 @@ class RandomFileQueue:
         """
         :rtype: Index.File|None
         """
-        return self.root.random_get()
+        f = self.root.random_get()
+        return f
+
