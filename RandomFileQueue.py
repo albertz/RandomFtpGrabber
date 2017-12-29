@@ -27,9 +27,6 @@ class RandomFileQueue:
         self.root_dir = root_dir
         self.fs = filesystem
 
-        class NonLoadedException(Exception):
-            pass
-
         class Dir:
             owner = self
             isLoaded = False
@@ -130,21 +127,16 @@ class RandomFileQueue:
                 :rtype: int
                 """
                 c = 0
-                loaded_dirs = None
-                len_nonloaded_dirs = None
                 with self.lock:
                     if self.files_count is not None:
                         return self.files_count
                     if not self.isLoaded:
-                        raise NonLoadedException()
+                        return kNonloadedDirsExpectedMin
                     c += len(self.files)
                     loaded_dirs = list(self.loadedDirs)
                     len_nonloaded_dirs = len(self.nonloadedDirs)
                 for d in loaded_dirs:
-                    try:
-                        c += d.expected_files_count()
-                    except NonLoadedException:
-                        c += max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
+                    c += d.expected_files_count()
                 c += len_nonloaded_dirs * \
                      max(int(kNonloadedDirsExpectedFac * c), kNonloadedDirsExpectedMin)
                 return c
@@ -158,10 +150,7 @@ class RandomFileQueue:
                     # Do this inside the loop because there is some logic which could unload ourselves.
                     self.load()
 
-                    try:
-                        rmax = self.expected_files_count()
-                    except NonLoadedException:
-                        raise filesystem.TemporaryException("Unloaded by parallel thread: %r" % self)
+                    rmax = self.expected_files_count()
                     if rmax == 0:
                         return None
                     r = rndInt(0, rmax - 1)
