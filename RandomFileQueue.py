@@ -55,7 +55,7 @@ class RandomFileQueue:
                     if self.isLoading:
                         # Don't wait for it.
                         # By throwing this exception, we will get the effect that we will retry later.
-                        raise self.owner.fs.TemporaryException("parallel thread is loading dir: %s" % self.base)
+                        raise filesystem.TemporaryException("parallel thread is loading dir: %s" % self.base)
                     self.isLoading = True
 
             def load(self):
@@ -65,12 +65,12 @@ class RandomFileQueue:
                     self._start_loading()
                 try:
                     listed_dir = self.owner._list_dir(self.base)
-                except self.owner.fs.TemporaryException as exc:
+                except filesystem.TemporaryException as exc:
                     # try again another time
                     self.isLoading = False
                     raise  # fall down to bottom
                 except Exception:
-                    self.owner.fs.handle_exception(*sys.exc_info())
+                    filesystem.handle_exception(*sys.exc_info())
                     # This is an unexpected error, which we handle as fatal.
                     # Note that other possible permanent errors (permission error, file not found, or so)
                     # are handled in listDir(), which probably returns also [] then.
@@ -78,9 +78,9 @@ class RandomFileQueue:
                 files = []
                 nonloaded_dirs = []
                 for f in listed_dir:
-                    if self.owner.fs.is_file(f):
+                    if filesystem.is_file(f):
                         files += [f]
-                    elif self.owner.fs.is_dir(f):
+                    elif filesystem.is_dir(f):
                         subdir = Dir(parent=self)
                         subdir.base = f
                         nonloaded_dirs += [subdir]
@@ -93,7 +93,7 @@ class RandomFileQueue:
                     # Invalidate parent.
                     assert isinstance(self.parent, Dir)
                     self.parent.unload()
-                    raise self.owner.fs.TemporaryException("Dir removed, reload parent next time: %r" % self.parent)
+                    raise filesystem.TemporaryException("Dir removed, reload parent next time: %r" % self.parent)
                 self._check_static_files_count()
 
             def _check_static_files_count(self):
@@ -158,7 +158,10 @@ class RandomFileQueue:
                     # Do this inside the loop because there is some logic which could unload ourselves.
                     self.load()
 
-                    rmax = self.expected_files_count()
+                    try:
+                        rmax = self.expected_files_count()
+                    except NonLoadedException:
+                        raise filesystem.TemporaryException("Unloaded by parallel thread: %r" % self)
                     if rmax == 0:
                         return None
                     r = rndInt(0, rmax - 1)
