@@ -46,13 +46,14 @@ class BaseAction:
 class Download(BaseAction):
     def __init__(self, url):
         self.url = str(url)
+        self.downloader = Downloader.Downloader(url=self.url)
 
     def __call__(self):
         import main
         if not main.allowed_by_blacklist(self.url):
             return
         try:
-            Downloader.download(self.url)
+            self.downloader.run()
         except Downloader.DownloadTemporaryError:
             # Retry later.
             # However, also queue some random action to allow other downloads.
@@ -66,7 +67,8 @@ class Download(BaseAction):
         return hash(str(self.url))
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__): return False
+        if not isinstance(other, self.__class__):
+            return False
         return str(self.url) == str(other.url)
 
     def __lt__(self, other):
