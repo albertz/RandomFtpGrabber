@@ -124,17 +124,13 @@ class WorkerThread(Thread):
             except Exception:
                 Logging.log_exception("Worker", *sys.exc_info())
             finally:
-                # Note, this is buggy:
-                # In case that func() adds itself back to the work-queue,
-                # we would remove it here and then sometime later when we
-                # execute it again, it's not in the set anymore.
-                # Note that some other code also does not expect this.
-                # TODO fix this
+                # Note: func() can add itself back to the work-queue.
                 with lock:
-                    if func in currentWorkSet:
-                        currentWorkSet.remove(func)
-                        # noinspection PyUnresolvedReferences
-                        currentWorkSet.save()
+                    if func not in workerQueueSet:
+                        if func in currentWorkSet:
+                            currentWorkSet.remove(func)
+                            # noinspection PyUnresolvedReferences
+                            currentWorkSet.save()
 
     def __str__(self):
         with self.lock:
