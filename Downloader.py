@@ -127,6 +127,9 @@ class Downloader:
                 if "404 Not Found" in line:
                     p.kill()
                     raise DownloadFatalError("error: " + line)
+                if "416 Requested Range" in line:
+                    p.kill()
+                    raise DownloadFatalError("error: " + line)
             p.poll()
 
         if p.returncode != 0:
