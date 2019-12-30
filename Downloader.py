@@ -4,7 +4,7 @@ import time
 import Logging
 
 
-kWgetProgessLineMod = 10
+kWgetProgressLineMod = 10
 kWgetNumTries = 3
 kWgetTimeout = 10  # in secs
 kMaxFilenameLenPrint = 15
@@ -53,15 +53,23 @@ def convert_to_unicode(value):
 
 
 class DownloadFatalError(Exception):
-    pass
+    """
+    E.g. the file does not exist anymore, or so.
+    We should not retry anymore.
+    """
 
 
 class DownloadTemporaryError(Exception):
-    pass
+    """
+    We hope that we can still get access to the file at some later point.
+    """
 
 
 class Downloader:
     def __init__(self, url):
+        """
+        :param str url:
+        """
         self.url = url
         self.last_output_time = None
 
@@ -112,7 +120,7 @@ class Downloader:
             if not line:
                 pass  # Cleanup output a bit.
             elif _wget_is_progress_line(line):
-                if progress_line_idx % kWgetProgessLineMod == 0:
+                if progress_line_idx % kWgetProgressLineMod == 0:
                     Logging.log("%s progress: %s" % (print_prefix, line))
                 progress_line_idx += 1
             else:
