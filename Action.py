@@ -54,14 +54,15 @@ class Download(BaseAction):
             return
         try:
             self.downloader.run()
-        except Downloader.DownloadTemporaryError:
+        except Downloader.DownloadTemporaryError as exc:
+            print("%s: %s %s" % (self, type(exc).__name__, exc))
             # Retry later.
             # However, also queue some random action to allow other downloads.
             TaskSystem.queue_work(RandomNextFile())
             TaskSystem.queue_work(self)
-        except Downloader.DownloadFatalError:
+        except Downloader.DownloadFatalError as exc:
+            print("%s: %s %s" % (self, type(exc).__name__, exc))
             # Cannot handle. Nothing we can do.
-            pass
 
     def __hash__(self):
         return hash(str(self.url))

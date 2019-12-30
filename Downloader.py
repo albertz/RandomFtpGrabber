@@ -1,5 +1,6 @@
 
 import os
+import re
 import time
 import Logging
 
@@ -111,6 +112,7 @@ class Downloader:
         devnull = open(os.devnull, "rb")
         p = Popen(args, stdin=devnull, stdout=PIPE, stderr=STDOUT, bufsize=0, env=env)
 
+        target_filename = None
         progress_line_idx = 0
         while p.returncode is None:
             line = p.stdout.readline()
@@ -138,10 +140,19 @@ class Downloader:
                 if "416 Requested Range" in line:
                     p.kill()
                     raise DownloadFatalError("error: " + line)
+                if line.strip().startswith("=> "):  # => ‘downloads/...’
+                    m = re.match("\\s*=> ‘(.*)’", line)
+                    assert m, "unexpected target filename pattern: %r" % line
+                    target_filename = m.group(1)
             p.poll()
 
+        if progress_line_idx > 0:
+            assert target_filename and os.path.exists(target_filename)
+
         if p.returncode != 0:
-            raise DownloadTemporaryError("return code %i" % p.returncode)
+            if not target_filename or not os.path.exists(target_filename):
+                # Just skip it. We might later add it again.
+                raise DownloadFatalError("return code %i; download not started" % p.returncode)
+            raise DownloadTemporaryError("return code %i; download started" % p.returncode)
 
         Logging.log("%s done." % print_prefix)
-
