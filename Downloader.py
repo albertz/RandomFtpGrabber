@@ -125,6 +125,16 @@ class Downloader:
                 if progress_line_idx % kWgetProgressLineMod == 0:
                     Logging.log("%s progress: %s" % (print_prefix, line))
                 progress_line_idx += 1
+            elif line.strip().startswith("=>"):  # => ‘downloads/...’
+                m = re.match("\\s*=> ‘(.*)’", line)
+                assert m, "%s: unexpected target filename pattern: %r" % (self, line)
+                target_filename = m.group(1)
+                Logging.log("%s: target filename: %s" % (print_prefix, target_filename))
+            elif line.strip().startswith("Saving to:"):  # Saving to: ‘downloads/...’
+                m = re.match("\\s*Saving to: ‘(.*)’", line)
+                assert m, "%s: unexpected target filename pattern: %r" % (self, line)
+                target_filename = m.group(1)
+                Logging.log("%s: target filename: %s" % (print_prefix, target_filename))
             else:
                 Logging.log("%s: %s" % (print_prefix, line))
                 # The only good way to check for certain errors.
@@ -140,10 +150,6 @@ class Downloader:
                 if "416 Requested Range" in line:
                     p.kill()
                     raise DownloadFatalError("error: " + line)
-                if line.strip().startswith("=> "):  # => ‘downloads/...’
-                    m = re.match("\\s*=> ‘(.*)’", line)
-                    assert m, "unexpected target filename pattern: %r" % line
-                    target_filename = m.group(1)
             p.poll()
 
         if progress_line_idx > 0:
