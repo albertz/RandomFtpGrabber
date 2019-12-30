@@ -1,7 +1,7 @@
 
 import sys
 from queue import Queue
-from threading import Event, Thread, Lock
+from threading import Event, Thread, Lock, RLock
 import better_exchook
 import Persistence
 import Logging
@@ -21,6 +21,10 @@ if "workerQueue" not in vars():
     workerQueue = None  # type: Queue
 if "currentWork" not in vars():
     currentWorkSet = None  # type: set
+if "workerQueueSet" not in vars():
+    workerQueueSet = set()
+if "lock" not in vars():
+    lock = RLock()
 
 
 def setup():
@@ -40,12 +44,17 @@ def queue_work(func):
     """
     :param Action.BaseAction func:
     """
-    currentWorkSet.add(func)
-    # noinspection PyUnresolvedReferences
-    currentWorkSet.save()
-    workerQueue.put(func)
-    # noinspection PyUnresolvedReferences
-    workerQueue.save()
+    with lock:
+        if func in workerQueueSet:
+            Logging.log("queueWork: already in queue: %r" % func)
+            return  # ignore
+        currentWorkSet.add(func)
+        # noinspection PyUnresolvedReferences
+        currentWorkSet.save()
+        workerQueue.put(func)
+        # noinspection PyUnresolvedReferences
+        workerQueue.save()
+        workerQueueSet.add(func)
 
 
 def reached_suggested_max_queue():
@@ -89,6 +98,9 @@ if "watcher" not in vars():
 
 class WorkerThread(Thread):
     def __init__(self, idx):
+        """
+        :param int idx:
+        """
         super(WorkerThread, self).__init__(name="Worker %i/%i" % (idx + 1, kNumWorkers))
         self.idx = idx
         self.daemon = True
@@ -98,7 +110,10 @@ class WorkerThread(Thread):
     def run(self):
         better_exchook.install()
         while True:
-            func = workerQueue.get()
+            with lock:
+                func = workerQueue.get()
+                if func in workerQueueSet:
+                    workerQueueSet.remove(func)
             Logging.log("Next work item: %s" % func, "remaining: %i" % workerQueue.qsize())
             with self.lock:
                 self.cur_item = func
@@ -115,10 +130,11 @@ class WorkerThread(Thread):
                 # execute it again, it's not in the set anymore.
                 # Note that some other code also does not expect this.
                 # TODO fix this
-                if func in currentWorkSet:
-                    currentWorkSet.remove(func)
-                    # noinspection PyUnresolvedReferences
-                    currentWorkSet.save()
+                with lock:
+                    if func in currentWorkSet:
+                        currentWorkSet.remove(func)
+                        # noinspection PyUnresolvedReferences
+                        currentWorkSet.save()
 
     def __str__(self):
         with self.lock:
@@ -140,6 +156,7 @@ def _init_worker_threads():
         workerQueue.put(func)
     # Fixup current work set.
     currentWorkSet.update(current_work_real)
+    workerQueueSet.update(currentWorkSet)
     # Now init the threads.
     for i in range(kNumWorkers - len(workers)):
         thread = WorkerThread(idx=i)
