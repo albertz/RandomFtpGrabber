@@ -40,9 +40,6 @@ def queue_work(func):
     """
     :param Action.BaseAction func:
     """
-    if currentWork in currentWork:
-        Logging.log("queueWork: already in queue: %r" % func)
-        return  # just ignore
     currentWork.add(func)
     # noinspection PyUnresolvedReferences
     currentWork.save()
