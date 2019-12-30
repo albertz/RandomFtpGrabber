@@ -20,17 +20,17 @@ if "exitEvent" not in vars():
 if "workerQueue" not in vars():
     workerQueue = None  # type: Queue
 if "currentWork" not in vars():
-    currentWork = None  # type: set
+    currentWorkSet = None  # type: set
 
 
 def setup():
     import Action
     global workerQueue
-    global currentWork
+    global currentWorkSet
     if workerQueue is None:
         workerQueue = Persistence.load("workerQueue.db", Queue, env=vars(Action))
-    if currentWork is None:
-        currentWork = Persistence.load("currentWork.db", set, env=vars(Action))
+    if currentWorkSet is None:
+        currentWorkSet = Persistence.load("currentWork.db", set, env=vars(Action))
 
     _init_watcher_thread()
     _init_worker_threads()
@@ -40,16 +40,16 @@ def queue_work(func):
     """
     :param Action.BaseAction func:
     """
-    currentWork.add(func)
+    currentWorkSet.add(func)
     # noinspection PyUnresolvedReferences
-    currentWork.save()
+    currentWorkSet.save()
     workerQueue.put(func)
     # noinspection PyUnresolvedReferences
     workerQueue.save()
 
 
 def reached_suggested_max_queue():
-    return len(currentWork) >= kSuggestedMaxQueuedActions
+    return len(currentWorkSet) >= kSuggestedMaxQueuedActions
 
 
 def main_loop():
@@ -68,7 +68,7 @@ def watcher_loop():
 
     while not exitEvent.isSet():
         if main.DownloadOnly:
-            if len(currentWork) == 0:
+            if len(currentWorkSet) == 0:
                 queue_work(Action.CheckDownloadsFinished())
             exitEvent.wait(1)
             continue
@@ -115,10 +115,10 @@ class WorkerThread(Thread):
                 # execute it again, it's not in the set anymore.
                 # Note that some other code also does not expect this.
                 # TODO fix this
-                if func in currentWork:
-                    currentWork.remove(func)
+                if func in currentWorkSet:
+                    currentWorkSet.remove(func)
                     # noinspection PyUnresolvedReferences
-                    currentWork.save()
+                    currentWorkSet.save()
 
     def __str__(self):
         with self.lock:
@@ -135,11 +135,11 @@ def _init_worker_threads():
         current_work_real.add(func)
     # Add all missing actions.
     # Those are actions which have been run when we quit last time.
-    missing_work = currentWork - current_work_real
+    missing_work = currentWorkSet - current_work_real
     for func in missing_work:
         workerQueue.put(func)
     # Fixup current work set.
-    currentWork.update(current_work_real)
+    currentWorkSet.update(current_work_real)
     # Now init the threads.
     for i in range(kNumWorkers - len(workers)):
         thread = WorkerThread(idx=i)

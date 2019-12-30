@@ -157,7 +157,7 @@ class CheckDownloadsFinished(BaseAction):
         import TaskSystem
         import Threading
         # Check if there are no more downloads running.
-        if len(TaskSystem.currentWork) <= 1:  # should only be ourselves
+        if len(TaskSystem.currentWorkSet) <= 1:  # should only be ourselves
             # Exit.
             Logging.log("All downloads finished.")
             Threading.do_in_main_thread(IssueSystemExit(), wait=False)
