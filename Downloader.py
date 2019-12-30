@@ -125,13 +125,8 @@ class Downloader:
                 if progress_line_idx % kWgetProgressLineMod == 0:
                     Logging.log("%s progress: %s" % (print_prefix, line))
                 progress_line_idx += 1
-            elif line.strip().startswith("=>"):  # => ‘downloads/...’
-                m = re.match("\\s*=> ‘(.*)’", line)
-                assert m, "%s: unexpected target filename pattern: %r" % (self, line)
-                target_filename = m.group(1)
-                Logging.log("%s: target filename: %s" % (print_prefix, target_filename))
-            elif line.strip().startswith("Saving to:"):  # Saving to: ‘downloads/...’
-                m = re.match("\\s*Saving to: ‘(.*)’", line)
+            elif line.strip().startswith("=>") or line.strip().startswith("Saving to:"):  # => ‘downloads/...’
+                m = re.match("\\s*=> ‘(.*)’", line) or re.match("\\s*Saving to: ‘(.*)’", line)
                 assert m, "%s: unexpected target filename pattern: %r" % (self, line)
                 target_filename = m.group(1)
                 Logging.log("%s: target filename: %s" % (print_prefix, target_filename))
@@ -153,7 +148,9 @@ class Downloader:
             p.poll()
 
         if progress_line_idx > 0:
-            assert target_filename and os.path.exists(target_filename)
+            assert target_filename
+            if os.path.basename(target_filename) != ".listing":
+                assert os.path.exists(target_filename)
 
         if p.returncode != 0:
             if not target_filename or not os.path.exists(target_filename):
